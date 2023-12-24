@@ -12,7 +12,7 @@ SET (CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
 SET (CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
 
 # other needed options
-SET (TENGINE_TOOLCHAIN_ASM_FLAG -march=rv64gcvxthead -mabi=lp64d -mtune=c906 -mfp16 -lc)
+SET (TENGINE_TOOLCHAIN_ASM_FLAG -march=rv64gcvxthead3 -mabi=lp64d -lc)
 #SET (TENGINE_TOOLCHAIN_FLAG -march=rv64imafdcvxtheadc -mabi=lp64dv -mtune=c906 -mfp16)
 #SET (TENGINE_TOOLCHAIN_FLAG -march=rv64imafdcvxtheadc -mabi=lp64dv -mtune=c910 -mfp16)
 

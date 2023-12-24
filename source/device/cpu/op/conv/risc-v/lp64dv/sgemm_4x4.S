@@ -82,13 +82,13 @@
         .global sgemm_4x4_rv64
         .hidden sgemm_4x4_rv64
 sgemm_4x4_rv64:
+        li  t0, 8
+        vsetvli t1, t0, e32, m1
+
         slli            a5, a5, 0x2
 #       // initial biases
         beqz            a0, non_biases
-        
-        li              t0, 8
-        li              t1, 1024
-        vsetvl          t0, t1, t0
+
         vle32.v           v0, (a0)
         vrgather.vi     v16, v0, 0
         vrgather.vi     v17, v0, 1
