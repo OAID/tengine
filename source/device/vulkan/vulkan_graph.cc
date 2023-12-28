@@ -23,6 +23,7 @@
  */
 
 #include "vulkan_graph.hpp"
+#include "api/c_api.h"
 #include "vulkan_executor.hpp"
 
 #include <cstdio>
@@ -281,7 +282,6 @@ VulkanGraph::~VulkanGraph()
 
 int VulkanGraph::upload_model()
 {
-    // printf("run upload_model\n");
     TEngine::VkTransfer cmd(vkdev);
     if (!weight_vkallocator)
     {
@@ -304,18 +304,15 @@ int VulkanGraph::upload_model()
     }
 
     cmd.submit_and_wait();
-    // printf("run upload_model done\n");
     return 0;
 }
 
 int VulkanGraph::create_pipeline()
 {
-    // printf("start to run create pipeline\n");
     for (size_t i = 0; i < layers.size(); i++)
     {
         Layer* layer = layers[i];
         Option opt1 = opt;
-        // printf("create pipeline layer name: %s \n", layers[i]->name.c_str());
         int cret = layer->create_pipeline(opt1);
         if (cret != 0)
         {
@@ -323,14 +320,11 @@ int VulkanGraph::create_pipeline()
             return -1;
         }
     }
-    // printf("run create_pipeline done\n");
     return 0;
 }
 
 int VulkanGraph::record_graph_pipeline()
 {
-    // printf("start to run record pipeline, layer size:%d\n", layers.size());
-
     TEngine::VkCompute cmd(vkdev);
 
     if (!opt.blob_vkallocator)
@@ -355,7 +349,6 @@ int VulkanGraph::record_graph_pipeline()
     {
         if (i == 0)
         {
-            // upload inputs to device
             for (auto const& inp : layers[i]->bottoms)
             {
                 cmd.record_upload(tensor_map_[inp], vktensor_map_[inp], opt);
@@ -364,10 +357,6 @@ int VulkanGraph::record_graph_pipeline()
 
         Layer* layer = layers[i];
         std::string out_name = layer->tops[0];
-        if (out_name == "pool6")
-        {
-            fprintf(stderr, "%s node output pool6\n", layer->node->name);
-        }
 
         int cret = 0;
         if (layer->one_blob_only)
@@ -400,13 +389,6 @@ int VulkanGraph::record_graph_pipeline()
             vktensor_map_[out_name] = top_blobs.front();
         }
 
-        // download all nodes data
-        {
-            // Tensor tmp_tensor;
-            // cmd.record_download(vktensor_map_[out_name], tmp_tensor, opt);
-            // tensor_map[out_name] = tmp_tensor;
-        }
-
         if (cret != 0)
         {
             printf("layer record_pipeline %d failed", (int)i);
@@ -418,28 +400,7 @@ int VulkanGraph::record_graph_pipeline()
     auto const& name = output_layer->tops.front();
     cmd.record_download(vktensor_map_[name], output, opt);
 
-    // // download output
-    // int byte_size=tensor_map_[name]->elem_size * tensor_map_[name]->elem_num;
-    // void* mem=std::malloc(byte_size);
-    // tensor_map_[name]->data = mem;
-    // cmd.record_download(vktensor_map_[name], tensor_map_[name], opt);
-
-    // double total_time, min_time, max_time;
-    //     min_time = 999999999;
-    //     max_time = 0;
-    //     total_time = 0;
-    // double start_time = get_cur_time();
-
     cmd.submit_and_wait();
-
-    // double end_time = get_cur_time();
-    // double cur_time = end_time - start_time;
-    // total_time += cur_time;
-    // if (cur_time > max_time)
-    //     max_time = cur_time;
-    // if (cur_time < min_time)
-    //     min_time = cur_time;
-    // printf("vulkan Repeat [1] min %.3f ms, max %.3f ms, avg %.3f ms\n", min_time, max_time, total_time / 1);
 
     Tensor tmp_fp32;
     if (output.elemsize == output.elempack * 2)
@@ -461,63 +422,7 @@ int VulkanGraph::record_graph_pipeline()
         blob_unpacked = tmp_fp32;
     }
 
-    tensor_map_[name]->data = blob_unpacked.data;
-
-// #define DEBUG_OUTPUT
-#ifdef DEBUG_OUTPUT
-    printf("run save tensor data\n");
-    for (size_t j = 0; j < layers.size(); j++)
-    {
-        Layer* layer = layers[j];
-
-        std::string in_name = layer->tops[0];
-        // std::string in_name = layer->bottoms[0];
-        printf("%s\n", in_name.c_str());
-
-        std::string fname = std::to_string(j) + ".data";
-        FILE* fp = fopen(fname.c_str(), "w");
-
-        // float * data = (float*)get_tensor_buffer(tensor_map_[name]);
-        // float* data = (float*)vktensor_map_[in_name].mapped_ptr();
-        // float* data = (float*)tensor_map_[in_name]->data;
-        // float* data = (float*)tensor_map[in_name].data;
-        Tensor tmp_fp16 = tensor_map[in_name];
-        Tensor tmp_fp32;
-        if (tmp_fp16.elemsize == tmp_fp16.elempack * 2)
-            TEngine::cast_float16_to_float32(tmp_fp16, tmp_fp32, opt);
-        else
-            tmp_fp32 = tmp_fp16;
-
-        Tensor blob_unpacked;
-        if (opt.use_packing_layout)
-            convert_packing(tmp_fp32, blob_unpacked, 1, opt);
-        else
-            blob_unpacked = tmp_fp32;
-
-        int byte_size = tensor_map_[in_name]->elem_size * tensor_map_[name]->elem_num;
-        void* mem = std::malloc(byte_size);
-        memcpy(mem, blob_unpacked.data, byte_size);
-        tensor_map_[in_name]->data = mem;
-        // tensor_map_[in_name]->data = blob_unpacked.data;
-
-        // float* data = (float*)tmp_fp32.data;
-        float* data = (float*)blob_unpacked.data;
-        printf("tensor shape:%d %d %d %d\n", tensor_map_[in_name]->dims[0], tensor_map_[in_name]->dims[1], tensor_map_[in_name]->dims[2], tensor_map_[in_name]->dims[3]);
-        byte_size = tensor_map_[in_name]->elem_size * tensor_map_[in_name]->elem_num;
-        for (int i = 0; i < byte_size / sizeof(float); i++)
-        {
-            if (i % 16 == 0)
-            {
-                fprintf(fp, "\n%d:", i);
-            }
-            fprintf(fp, " %.6f", data[i]);
-        }
-        fprintf(fp, "\n");
-
-        fclose(fp);
-    }
-#endif
-
+    tensor_map_[name]->data = blob_unpacked.data; // FIXME: leak?
     return 0;
 }
 
