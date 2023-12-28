@@ -52,9 +52,7 @@ namespace TEngine {
 class Convolution_vulkan : public Layer
 {
 public:
-    Convolution_vulkan();
-    // Convolution_vulkan(ir_node* node);
-    Convolution_vulkan(ir_graph_t* graph, ir_node_t* node);
+    Convolution_vulkan(ir_graph_t* graph, ir_node_t* node, const GPUDevice* vkdev);
 
     virtual int create_pipeline(const Option& opt);
     virtual int destroy_pipeline(const Option& opt);

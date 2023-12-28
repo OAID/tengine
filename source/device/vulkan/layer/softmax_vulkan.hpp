@@ -50,8 +50,7 @@ namespace TEngine {
 class Softmax_vulkan : public Layer
 {
 public:
-    Softmax_vulkan();
-    Softmax_vulkan(ir_graph_t* ir_graph, ir_node_t* ir_node);
+    Softmax_vulkan(ir_graph_t* ir_graph, ir_node_t* ir_node, const GPUDevice* vkdev);
 
     virtual int create_pipeline(const Option& opt);
     virtual int destroy_pipeline(const Option& opt);

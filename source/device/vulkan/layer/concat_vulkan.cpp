@@ -39,33 +39,13 @@
 
 #include "concat_vulkan.hpp"
 #include "../layer_shader_type.h"
+#include "vulkan_layer.hpp"
 
 namespace TEngine {
 
-Concat_vulkan::Concat_vulkan()
+Concat_vulkan::Concat_vulkan(ir_graph_t* ir_graph, ir_node_t* ir_node, const GPUDevice* vkdev)
+    : Layer(vkdev)
 {
-    support_vulkan = true;
-    support_image_storage = false;
-
-    pipeline_concat[0] = 0;
-    pipeline_concat[1] = 0;
-    pipeline_concat_pack4[0] = 0;
-    pipeline_concat_pack4[1] = 0;
-    pipeline_concat_pack4to1[0] = 0;
-    pipeline_concat_pack4to1[1] = 0;
-    pipeline_concat_pack8[0] = 0;
-    pipeline_concat_pack8[1] = 0;
-    pipeline_concat_pack8to4[0] = 0;
-    pipeline_concat_pack8to4[1] = 0;
-    pipeline_concat_pack8to1[0] = 0;
-    pipeline_concat_pack8to1[1] = 0;
-}
-
-Concat_vulkan::Concat_vulkan(ir_graph_t* ir_graph, ir_node_t* ir_node)
-{
-    support_vulkan = true;
-    support_image_storage = false;
-
     pipeline_concat[0] = 0;
     pipeline_concat[1] = 0;
     pipeline_concat_pack4[0] = 0;
@@ -91,7 +71,7 @@ Concat_vulkan::Concat_vulkan(ir_graph_t* ir_graph, ir_node_t* ir_node)
 
     for (int i = 0; i < ir_node->output_num; i++)
     {
-        struct tensor* output = get_ir_graph_tensor(graph, node->input_tensors[i]);
+        struct tensor* output = get_ir_graph_tensor(graph, node->output_tensors[i]);
         std::string name = output->name;
         tops.push_back(name);
     }
@@ -107,7 +87,7 @@ Concat_vulkan::Concat_vulkan(ir_graph_t* ir_graph, ir_node_t* ir_node)
     output_w = output_tensor->dims[3];
 
     struct concat_param* param = (struct concat_param*)ir_node->op.param_mem;
-    axis = param->axis - 1;
+    axis = param->axis;
 }
 
 int Concat_vulkan::create_pipeline(const Option& _opt)
@@ -172,9 +152,7 @@ int Concat_vulkan::create_pipeline(const Option& _opt)
     if (out_shape.dims == 2) out_shape_unpacked = Tensor(out_shape.w, out_shape.h / elempack, (void*)0, elemsize, elempack);
     if (out_shape.dims == 3) out_shape_unpacked = Tensor(out_shape.w, out_shape.h, out_shape.c / elempack, (void*)0, elemsize, elempack);
 
-    // if (!vkdev->shape_support_image_storage(out_shape_unpacked))
     {
-        support_image_storage = false;
         opt.use_image_storage = false;
     }
 

@@ -39,14 +39,14 @@
 
 #include "flatten_vulkan.hpp"
 #include "../layer_shader_type.h"
+#include "vulkan_layer.hpp"
 
 namespace TEngine {
-
-Flatten_vulkan::Flatten_vulkan()
+Flatten_vulkan::Flatten_vulkan(const GPUDevice* vkdev)
+    : Layer(vkdev)
 {
-    support_vulkan = true;
-    support_image_storage = false;
-
+	support_inplace = false;
+	one_blob_only = true;
     pipeline_flatten = 0;
     pipeline_flatten_pack4 = 0;
     pipeline_flatten_pack1to4 = 0;
@@ -55,11 +55,10 @@ Flatten_vulkan::Flatten_vulkan()
     pipeline_flatten_pack4to8 = 0;
 }
 
-Flatten_vulkan::Flatten_vulkan(ir_graph_t* ir_graph, ir_node_t* ir_node)
+Flatten_vulkan::Flatten_vulkan(ir_graph_t* ir_graph, ir_node_t* ir_node, const GPUDevice* vkdev)
+    : Layer(vkdev)
 {
-    support_vulkan = true;
-    support_image_storage = true;
-
+    one_blob_only = true;
     pipeline_flatten = 0;
     pipeline_flatten_pack4 = 0;
     pipeline_flatten_pack1to4 = 0;
@@ -133,9 +132,7 @@ int Flatten_vulkan::create_pipeline(const Option& _opt)
     Tensor out_shape_packed;
     if (out_shape.dims == 1) out_shape_packed = Tensor(out_shape.w / out_elempack, (void*)0, out_elemsize, out_elempack);
 
-    // if (!vkdev->shape_support_image_storage(shape_packed) || !vkdev->shape_support_image_storage(out_shape_packed))
     {
-        support_image_storage = false;
         opt.use_image_storage = false;
     }
 

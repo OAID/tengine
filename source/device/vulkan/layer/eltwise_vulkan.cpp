@@ -39,27 +39,14 @@
 
 #include "eltwise_vulkan.hpp"
 #include "../layer_shader_type.h"
+#include "vulkan_layer.hpp"
 
 namespace TEngine {
 
-Eltwise_vulkan::Eltwise_vulkan()
+Eltwise_vulkan::Eltwise_vulkan(ir_graph_t* ir_graph, ir_node_t* ir_node, const GPUDevice* vkdev)
+    : Layer(vkdev)
 {
-    support_vulkan = true;
-    support_image_storage = false;
-
-    pipeline_eltwise[0] = 0;
-    pipeline_eltwise[1] = 0;
-    pipeline_eltwise_pack4[0] = 0;
-    pipeline_eltwise_pack4[1] = 0;
-    pipeline_eltwise_pack8[0] = 0;
-    pipeline_eltwise_pack8[1] = 0;
-}
-
-Eltwise_vulkan::Eltwise_vulkan(ir_graph_t* ir_graph, ir_node_t* ir_node)
-{
-    support_vulkan = true;
-    support_image_storage = true;
-
+    one_blob_only = false;
     pipeline_eltwise[0] = 0;
     pipeline_eltwise[1] = 0;
     pipeline_eltwise_pack4[0] = 0;

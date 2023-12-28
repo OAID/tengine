@@ -1945,8 +1945,7 @@ int GPUDevice::create_utility_operator()
                         opt.use_shader_pack8 = true;
 
                         { // create packing layer
-                            TEngine::Packing_vulkan* uop = new Packing_vulkan();
-                            uop->vkdev = this;
+                            TEngine::Packing_vulkan* uop = new Packing_vulkan(this);
 
                             uop->out_elempack = k == 0 ? 1 : k == 1 ? 4
                                                                     : 8;

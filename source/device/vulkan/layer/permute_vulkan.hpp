@@ -50,8 +50,7 @@ namespace TEngine {
 class Permute_vulkan : public Layer
 {
 public:
-    Permute_vulkan();
-    Permute_vulkan(ir_graph_t* ir_graph, ir_node_t* ir_node);
+    Permute_vulkan(ir_graph_t* ir_graph, ir_node_t* ir_node, const GPUDevice* vkdev);
 
     virtual int create_pipeline(const Option& opt);
     virtual int destroy_pipeline(const Option& opt);

@@ -48,7 +48,7 @@ namespace TEngine {
 class Padding_vulkan : public Layer
 {
 public:
-    Padding_vulkan();
+    Padding_vulkan(GPUDevice const* vkdev);
 
     virtual int create_pipeline(const Option& opt);
     virtual int destroy_pipeline(const Option& opt);

@@ -39,30 +39,14 @@
 
 #include "permute_vulkan.hpp"
 #include "../layer_shader_type.h"
+#include "vulkan_layer.hpp"
 
 namespace TEngine {
 
-Permute_vulkan::Permute_vulkan()
+Permute_vulkan::Permute_vulkan(ir_graph_t* ir_graph, ir_node_t* ir_node, const GPUDevice* vkdev)
+    : Layer(vkdev)
 {
-    support_vulkan = true;
-    support_image_storage = true;
-
-    pipeline_permute = 0;
-    pipeline_permute_pack4 = 0;
-    pipeline_permute_pack1to4 = 0;
-    pipeline_permute_pack4to1 = 0;
-    pipeline_permute_pack8 = 0;
-    pipeline_permute_pack1to8 = 0;
-    pipeline_permute_pack4to8 = 0;
-    pipeline_permute_pack8to4 = 0;
-    pipeline_permute_pack8to1 = 0;
-}
-
-Permute_vulkan::Permute_vulkan(ir_graph_t* ir_graph, ir_node_t* ir_node)
-{
-    support_vulkan = true;
-    support_image_storage = true;
-
+    one_blob_only = true;
     pipeline_permute = 0;
     pipeline_permute_pack4 = 0;
     pipeline_permute_pack1to4 = 0;
@@ -158,10 +142,7 @@ int Permute_vulkan::create_pipeline(const Option& _opt)
     if (out_shape.dims == 2) out_shape_packed = Tensor(out_shape.w, out_shape.h / out_elempack, (void*)0, out_elemsize, out_elempack);
     if (out_shape.dims == 3) out_shape_packed = Tensor(out_shape.w, out_shape.h, out_shape.c / out_elempack, (void*)0, out_elemsize, out_elempack);
 
-    // check blob shape
-    // if (!vkdev->shape_support_image_storage(shape_packed) || !vkdev->shape_support_image_storage(out_shape_packed))
     {
-        support_image_storage = false;
         opt.use_image_storage = false;
     }
 
