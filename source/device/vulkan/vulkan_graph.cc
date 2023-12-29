@@ -152,13 +152,11 @@ VulkanGraph::VulkanGraph(struct subgraph* graph)
             if (conv_param->group == conv_param->output_channel && conv_param->group != 1 && ir_graph->graph_layout == TENGINE_LAYOUT_NCHW) // DW
             {
                 Layer* layer = new ConvolutionDepthWise_vulkan(ir_graph, ir_node, vkdev);
-                layer->vkdev = vkdev;
                 layers.push_back(layer);
             }
             else
             {
                 Layer* layer = new Convolution_vulkan(ir_graph, ir_node, vkdev);
-                layer->vkdev = vkdev;
                 layers.push_back(layer);
             }
         }
@@ -166,91 +164,78 @@ VulkanGraph::VulkanGraph(struct subgraph* graph)
         if (ir_node->op.type == OP_POOL)
         {
             Layer* layer = new Pooling_vulkan(ir_graph, ir_node, vkdev);
-            layer->vkdev = vkdev;
             layers.push_back(layer);
         }
 
         if (ir_node->op.type == OP_FC)
         {
             Layer* layer = new InnerProduct_vulkan(ir_graph, ir_node, vkdev);
-            layer->vkdev = vkdev;
             layers.push_back(layer);
         }
 
         if (ir_node->op.type == OP_FLATTEN)
         {
             Layer* layer = new Flatten_vulkan(ir_graph, ir_node, vkdev);
-            layer->vkdev = vkdev;
             layers.push_back(layer);
         }
 
         if (ir_node->op.type == OP_SOFTMAX)
         {
             Layer* layer = new Softmax_vulkan(ir_graph, ir_node, vkdev);
-            layer->vkdev = vkdev;
             layers.push_back(layer);
         }
 
         if (ir_node->op.type == OP_RELU)
         {
             Layer* layer = new ReLU_vulkan(ir_graph, ir_node, vkdev);
-            layer->vkdev = vkdev;
             layers.push_back(layer);
         }
 
         if (ir_node->op.type == OP_DROPOUT)
         {
             Layer* layer = new Dropout_vulkan(ir_graph, ir_node, vkdev);
-            layer->vkdev = vkdev;
             layers.push_back(layer);
         }
 
         if (ir_node->op.type == OP_ELTWISE)
         {
             Layer* layer = new Eltwise_vulkan(ir_graph, ir_node, vkdev);
-            layer->vkdev = vkdev;
             layers.push_back(layer);
         }
 
         if (ir_node->op.type == OP_PRIORBOX)
         {
             Layer* layer = new PriorBox_vulkan(ir_graph, ir_node, vkdev);
-            layer->vkdev = vkdev;
             layers.push_back(layer);
         }
 
         if (ir_node->op.type == OP_PERMUTE)
         {
             Layer* layer = new Permute_vulkan(ir_graph, ir_node, vkdev);
-            layer->vkdev = vkdev;
             layers.push_back(layer);
         }
 
         if (ir_node->op.type == OP_CONCAT)
         {
             Layer* layer = new Concat_vulkan(ir_graph, ir_node, vkdev);
-            layer->vkdev = vkdev;
             layers.push_back(layer);
         }
 
         if (ir_node->op.type == OP_RESHAPE)
         {
             Layer* layer = new Reshape_vulkan(ir_graph, ir_node, vkdev);
-            layer->vkdev = vkdev;
             layers.push_back(layer);
         }
 
         if (ir_node->op.type == OP_INTERP || ir_node->op.type == OP_UPSAMPLE)
         {
             Layer* layer = new Interp_vulkan(ir_graph, ir_node, vkdev);
-            layer->vkdev = vkdev;
             layers.push_back(layer);
         }
 
         if (ir_node->op.type == OP_CROP)
         {
             Layer* layer = new Crop_vulkan(ir_graph, ir_node, vkdev);
-            layer->vkdev = vkdev;
             layers.push_back(layer);
         }
 
@@ -426,7 +411,7 @@ int VulkanGraph::record_graph_pipeline()
         blob_unpacked = tmp_fp32;
     }
 
-    tensor_map[name] = blob_unpacked; // don't release blob_unpacked 
+    tensor_map[name] = blob_unpacked; // don't release blob_unpacked
     tensor_map_[name]->data = blob_unpacked.data;
     return 0;
 }
