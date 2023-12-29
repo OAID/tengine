@@ -342,19 +342,22 @@ int VulkanGraph::record_graph_pipeline()
         opt.staging_vkallocator = local_staging_vkallocator;
     }
 
+    for (int i = 0; i < sgraph->graph->input_num; ++i)
+    {
+        const node_t input_node = get_graph_input_node(sgraph->graph, i);
+        for (int k = 0; k < get_node_output_number(input_node); ++k)
+        {
+            const auto input_tensor = get_graph_input_tensor(sgraph->graph, i, k);
+            const auto name = get_tensor_name(input_tensor);
+            cmd.record_upload(tensor_map_[name], vktensor_map_[name], opt);
+        }
+    }
+
     Tensor input;
     Tensor output;
 
     for (size_t i = 0; i < layers.size(); i++)
     {
-        if (i == 0)
-        {
-            for (auto const& inp : layers[i]->bottoms)
-            {
-                cmd.record_upload(tensor_map_[inp], vktensor_map_[inp], opt);
-            }
-        }
-
         Layer* layer = layers[i];
         std::string out_name = layer->tops[0];
 
