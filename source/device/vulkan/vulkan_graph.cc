@@ -354,7 +354,6 @@ int VulkanGraph::record_graph_pipeline()
     }
 
     Tensor input;
-    Tensor output;
 
     for (size_t i = 0; i < layers.size(); i++)
     {
@@ -401,6 +400,8 @@ int VulkanGraph::record_graph_pipeline()
 
     auto output_layer = layers.back();
     auto const& name = output_layer->tops.front();
+
+    auto& output = tensor_map[name];
     cmd.record_download(vktensor_map_[name], output, opt);
 
     cmd.submit_and_wait();
@@ -425,7 +426,8 @@ int VulkanGraph::record_graph_pipeline()
         blob_unpacked = tmp_fp32;
     }
 
-    tensor_map_[name]->data = blob_unpacked.data; // FIXME: leak?
+    tensor_map[name] = blob_unpacked; // don't release blob_unpacked 
+    tensor_map_[name]->data = blob_unpacked.data;
     return 0;
 }
 
