@@ -126,6 +126,9 @@ VulkanGraph::VulkanGraph(struct subgraph* graph)
     if (!vkdev->info.support_fp16_arithmetic)
         opt.use_fp16_arithmetic = false;
 
+	opt.use_fp16_packed = false;
+	opt.use_fp16_arithmetic = false;
+	opt.use_fp16_storage = false;
     TLOG_INFO("use_fp16_packed %d\n", opt.use_fp16_packed);
     TLOG_INFO("use_fp16_storage %d\n", opt.use_fp16_storage);
     TLOG_INFO("use_shader_pack8 %d\n", opt.use_shader_pack8);
