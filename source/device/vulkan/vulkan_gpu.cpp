@@ -798,7 +798,7 @@ int create_gpu_instance()
             }
             if (gpu_info.support_VK_KHR_16bit_storage)
             {
-                gpu_info.support_fp16_storage = query16BitStorageFeatures.storageBuffer16BitAccess && query16BitStorageFeatures.uniformAndStorageBuffer16BitAccess;
+                gpu_info.support_fp16_storage = query16BitStorageFeatures.storageBuffer16BitAccess && query16BitStorageFeatures.uniformAndStorageBuffer16BitAccess && query16BitStorageFeatures.storageInputOutput16;
             }
             if (gpu_info.support_VK_KHR_shader_float16_int8)
             {
