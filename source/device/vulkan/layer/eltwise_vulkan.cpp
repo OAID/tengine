@@ -64,12 +64,13 @@ Eltwise_vulkan::Eltwise_vulkan(ir_graph_t* ir_graph, ir_node_t* ir_node, const G
         bottoms.push_back(name);
     }
 
-    for (int i = 0; i < ir_node->output_num; i++)
-    {
-        struct tensor* output = get_ir_graph_tensor(graph, node->input_tensors[i]);
-        std::string name = output->name;
-        tops.push_back(name);
-    }
+    struct tensor* output = get_ir_graph_tensor(graph, node->output_tensors[0]);
+    std::string name = output->name;
+    tops.push_back(name);
+
+	output_c = output->dims[1];
+	output_h = output->dims[2];
+	output_w = output->dims[3];
 
     struct eltwise_param* param = (struct eltwise_param*)ir_node->op.param_mem;
     op_type = (param->type) / 2;

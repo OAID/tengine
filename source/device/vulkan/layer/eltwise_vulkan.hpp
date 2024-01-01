@@ -85,9 +85,6 @@ public:
     };
     int op_type; // Operation_PROD = 0, Operation_SUM = 1, Operation_MAX = 2
 
-    int input_c;
-    int input_h;
-    int input_w;
     int output_c;
     int output_h;
     int output_w;

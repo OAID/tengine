@@ -27,6 +27,7 @@
 #include "vulkan_executor.hpp"
 
 #include <cstdio>
+#include <functional>
 #include <iostream>
 #include "vulkan_graph.hpp"
 #include "vulkan_pipeline.hpp"
@@ -139,6 +140,23 @@ VulkanGraph::VulkanGraph(struct subgraph* graph)
     for (int i = 0; i < node_num; i++)
     {
         struct node* ir_node = get_ir_graph_node(ir_graph, subgraph->node_list[i]);
+        for (int i = 0; i < ir_node->input_num; ++i)
+        {
+            struct tensor* input = get_ir_graph_tensor(ir_graph, ir_node->input_tensors[i]);
+            const auto name = input->name;
+            tensor_map_[name] = input;
+            tensor_map[name] = Tensor(input);
+            VkTensor vktensor;
+            vktensor_map_[name] = vktensor;
+        }
+
+        for (int i = 0; i < ir_node->output_num; ++i)
+        {
+            struct tensor* output = get_ir_graph_tensor(ir_graph, ir_node->output_tensors[i]);
+            const auto name = output->name;
+            tensor_map_[name] = output;
+            tensor_map[name] = Tensor(output);
+        }
 
         if (ir_node->op.type == OP_CONST || ir_node->op.type == OP_INPUT)
             continue;
@@ -238,24 +256,6 @@ VulkanGraph::VulkanGraph(struct subgraph* graph)
             Layer* layer = new Crop_vulkan(ir_graph, ir_node, vkdev);
             layers.push_back(layer);
         }
-
-        for (int i = 0; i < ir_node->input_num; ++i)
-        {
-            struct tensor* input = get_ir_graph_tensor(ir_graph, ir_node->input_tensors[i]);
-            const auto name = input->name;
-            tensor_map_[name] = input;
-            tensor_map[name] = Tensor(input);
-            VkTensor vktensor;
-            vktensor_map_[name] = vktensor;
-        }
-
-        for (int i = 0; i < ir_node->output_num; ++i)
-        {
-            struct tensor* output = get_ir_graph_tensor(ir_graph, ir_node->output_tensors[i]);
-            const auto name = output->name;
-            tensor_map_[name] = output;
-            tensor_map[name] = Tensor(output);
-        }
     }
 }
 
@@ -327,15 +327,13 @@ int VulkanGraph::record_graph_pipeline()
         opt.staging_vkallocator = local_staging_vkallocator;
     }
 
-    for (int i = 0; i < sgraph->graph->input_num; ++i)
+    // build tensor map
+    for (int i = 0; i < sgraph->input_num; ++i)
     {
-        const node_t input_node = get_graph_input_node(sgraph->graph, i);
-        for (int k = 0; k < get_node_output_number(input_node); ++k)
-        {
-            const auto input_tensor = get_graph_input_tensor(sgraph->graph, i, k);
-            const auto name = get_tensor_name(input_tensor);
-            cmd.record_upload(tensor_map_[name], vktensor_map_[name], opt);
-        }
+        auto input_tensor = sgraph->graph->tensor_list[sgraph->input_tensor_list[i]];
+        const auto name = get_tensor_name(input_tensor);
+        tensor_map_[name] = input_tensor;
+        cmd.record_upload(tensor_map_[name], vktensor_map_[name], opt);
     }
 
     Tensor input;
@@ -383,36 +381,55 @@ int VulkanGraph::record_graph_pipeline()
         }
     }
 
-    auto output_layer = layers.back();
-    auto const& name = output_layer->tops.front();
+    auto for_each_output = [this](std::function<void(const char* name)> const& fn) {
+        auto output_num = sgraph->output_num;
+        for (int i = 0; i < output_num; ++i)
+        {
+            auto output_tensor = sgraph->graph->tensor_list[sgraph->output_tensor_list[i]];
+            auto const* name = get_tensor_name(output_tensor);
+            fn(name);
+        }
+    };
 
-    auto& output = tensor_map[name];
-    cmd.record_download(vktensor_map_[name], output, opt);
+    for_each_output([this, &cmd](const char* name) {
+        auto vkoutput = vktensor_map_.find(name);
+        if (vkoutput == vktensor_map_.cend()) return;
+        auto& output = tensor_map[name];
+        cmd.record_download(vkoutput->second, tensor_map[name], opt);
+    });
 
     cmd.submit_and_wait();
 
-    Tensor tmp_fp32;
-    if (output.elemsize == output.elempack * 2)
-    {
-        TEngine::cast_float16_to_float32(output, tmp_fp32, opt);
-    }
-    else
-    {
-        tmp_fp32 = output;
-    }
+    for_each_output([this](const char* name) {
+        auto pos = tensor_map.find(name);
+        if (pos == tensor_map.cend()) return;
 
-    Tensor blob_unpacked;
-    if (opt.use_packing_layout)
-    {
-        convert_packing(tmp_fp32, blob_unpacked, 1, opt);
-    }
-    else
-    {
-        blob_unpacked = tmp_fp32;
-    }
+        auto& output = pos->second;
 
-    tensor_map[name] = blob_unpacked; // don't release blob_unpacked
-    tensor_map_[name]->data = blob_unpacked.data;
+        Tensor tmp_fp32;
+        if (output.elemsize == output.elempack * 2)
+        {
+            TEngine::cast_float16_to_float32(output, tmp_fp32, opt);
+        }
+        else
+        {
+            tmp_fp32 = output;
+        }
+
+        Tensor blob_unpacked;
+        if (opt.use_packing_layout)
+        {
+            convert_packing(tmp_fp32, blob_unpacked, 1, opt);
+        }
+        else
+        {
+            blob_unpacked = tmp_fp32;
+        }
+
+        tensor_map[name] = blob_unpacked; // don't release blob_unpacked
+        tensor_map_[name]->data = blob_unpacked.data;
+    });
+
     return 0;
 }
 

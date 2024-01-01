@@ -46,6 +46,7 @@ namespace TEngine {
 Concat_vulkan::Concat_vulkan(ir_graph_t* ir_graph, ir_node_t* ir_node, const GPUDevice* vkdev)
     : Layer(vkdev)
 {
+	one_blob_only = false;
     pipeline_concat[0] = 0;
     pipeline_concat[1] = 0;
     pipeline_concat_pack4[0] = 0;
