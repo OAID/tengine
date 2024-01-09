@@ -27,8 +27,7 @@
 #include "vulkan_limit.hpp"
 #include "vulkan_graph.hpp"
 
-extern "C"
-{
+extern "C" {
 #include "api/c_api.h"
 #include "device/device.h"
 #include "graph/tensor.h"
@@ -43,7 +42,6 @@ extern "C"
 }
 
 #include <cstring>
-
 
 int vulkan_describe(struct device* device, struct vector* allowed_ops, struct vector* blocked_ops, struct vector* precision)
 {
@@ -78,7 +76,6 @@ int vulkan_describe(struct device* device, struct vector* allowed_ops, struct ve
     return 0;
 }
 
-
 int vulkan_evaluation(struct device* device, struct subgraph* sub_graph, struct vector* evolution_tensors, struct vector* evolution_nodes)
 {
     // nothing to do with vulkan
@@ -89,7 +86,6 @@ int vulkan_evaluation(struct device* device, struct subgraph* sub_graph, struct 
 
     return 0;
 }
-
 
 int vulkan_allocate(struct device* device, struct subgraph* sub_graph)
 {
@@ -111,7 +107,6 @@ int vulkan_allocate(struct device* device, struct subgraph* sub_graph)
 
     return 0;
 }
-
 
 int vulkan_release(struct device* device, struct subgraph* sub_graph)
 {
@@ -162,47 +157,40 @@ int vulkan_split_graph(struct graph* ir_graph)
     return 0;
 }
 
-
-extern "C"
-{
+extern "C" {
 static struct interface vulkan_interface = {
-        .init           = vulkan_dev_init,
-        .pre_run        = vulkan_dev_prerun,
-        .run            = vulkan_dev_run,
-        .post_run       = vulkan_dev_postrun,
-        .async_run      = nullptr,
-        .async_wait     = nullptr,
-        .release_graph  = nullptr,
-        .release_device = vulkan_dev_release,
+    .init = vulkan_dev_init,
+    .pre_run = vulkan_dev_prerun,
+    .run = vulkan_dev_run,
+    .post_run = vulkan_dev_postrun,
+    .async_run = nullptr,
+    .async_wait = nullptr,
+    .release_graph = nullptr,
+    .release_device = vulkan_dev_release,
 };
-
 
 static struct allocator vulkan_allocator = {
-        .describe       = vulkan_describe,
-        .evaluation     = vulkan_evaluation,
-        .allocate       = vulkan_allocate,
-        .release        = vulkan_release,
+    .describe = vulkan_describe,
+    .evaluation = vulkan_evaluation,
+    .allocate = vulkan_allocate,
+    .release = vulkan_release,
 };
-
 
 static struct optimizer vulkan_optimizer = {
-        .split_graph    = vulkan_split_graph,
-        .optimize_graph = nullptr,
+    .split_graph = vulkan_split_graph,
+    .optimize_graph = nullptr,
 };
-
-
 
 static struct vulkan_device vulkan_dev = {
-        .base = {
-                .name       = VULKAN_DEV_NAME,
-                .interface  = &vulkan_interface,
-                .allocator  = &vulkan_allocator,
-                .optimizer  = &vulkan_optimizer,
-                .scheduler  = nullptr,
-                .privacy    = nullptr,
-        },
+    .base = {
+        .name = VULKAN_DEV_NAME,
+        .interface = &vulkan_interface,
+        .allocator = &vulkan_allocator,
+        .optimizer = &vulkan_optimizer,
+        .scheduler = nullptr,
+        .privacy = nullptr,
+    },
 };
-
 
 int register_vulkan_device(void)
 {
@@ -216,7 +204,6 @@ int register_vulkan_device(void)
     TLOG_INFO("Tengine plugin device %s is registered.\n", vulkan_dev.base.name);
     return 0;
 }
-
 
 int unregister_vulkan_device(void)
 {

@@ -25,6 +25,7 @@
 #include "vulkan_graph.hpp"
 #include "api/c_api.h"
 #include "vulkan_executor.hpp"
+#include "vulkan_gpu.hpp"
 
 #include <cstdio>
 #include <cassert>
@@ -91,6 +92,7 @@ static void save_tensor(const char* fname, const float* vals, std::vector<int> c
 int vulkan_dev_init(struct device* dev)
 {
     (void)dev;
+    TEngine::create_gpu_instance();
     return 0;
 }
 
@@ -120,6 +122,7 @@ int vulkan_dev_postrun(struct device* dev, struct subgraph* subgraph)
 int vulkan_dev_release(struct device* dev)
 {
     (void)dev;
+    TEngine::destroy_gpu_instance();
     return 0;
 }
 
