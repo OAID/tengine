@@ -27,6 +27,7 @@
 #include "vulkan_executor.hpp"
 
 #include <cstdio>
+#include <cassert>
 #include <functional>
 #include <iostream>
 #include "vulkan_graph.hpp"
@@ -61,6 +62,30 @@ extern "C" {
 #include "graph/node.h"
 #include "graph/graph.h"
 #include "graph/subgraph.h"
+}
+
+#define VULKAN_DEBUG_TENSOR 0
+
+static void save_tensor(const char* fname, const float* vals, std::vector<int> const& dims)
+{
+    auto fout = fopen(fname, "w+");
+    assert(fout);
+    int n = 1;
+
+    for (auto const d : dims)
+    {
+        fprintf(fout, "%d ", d);
+        n *= d;
+    }
+    fprintf(fout, "\n");
+
+    for (int i = 0; i < n; ++i)
+    {
+        fprintf(fout, "%f ", vals[i]);
+    }
+    fprintf(fout, "\n");
+    fflush(fout);
+    fclose(fout);
 }
 
 int vulkan_dev_init(struct device* dev)
@@ -327,7 +352,7 @@ int VulkanGraph::record_graph_pipeline()
         opt.staging_vkallocator = local_staging_vkallocator;
     }
 
-    // build tensor map
+    // upload input tensor
     for (int i = 0; i < sgraph->input_num; ++i)
     {
         auto input_tensor = sgraph->graph->tensor_list[sgraph->input_tensor_list[i]];
@@ -335,8 +360,6 @@ int VulkanGraph::record_graph_pipeline()
         tensor_map_[name] = input_tensor;
         cmd.record_upload(tensor_map_[name], vktensor_map_[name], opt);
     }
-
-    Tensor input;
 
     for (size_t i = 0; i < layers.size(); i++)
     {
@@ -350,7 +373,7 @@ int VulkanGraph::record_graph_pipeline()
             auto& bottom_tensor = vktensor_map_[in_name];
             if (layer->support_inplace)
             {
-                auto cret = layer->record_pipeline(bottom_tensor, cmd, opt);
+                cret = layer->record_pipeline(bottom_tensor, cmd, opt);
                 //FIXME: chec and log here
                 vktensor_map_[out_name] = bottom_tensor;
             }
@@ -393,8 +416,11 @@ int VulkanGraph::record_graph_pipeline()
 
     for_each_output([this, &cmd](const char* name) {
         auto vkoutput = vktensor_map_.find(name);
-        if (vkoutput == vktensor_map_.cend()) return;
-        auto& output = tensor_map[name];
+        if (vkoutput == vktensor_map_.cend())
+        {
+            fprintf(stderr, "%s output tensor is not found.\n", name);
+            return;
+        };
         cmd.record_download(vkoutput->second, tensor_map[name], opt);
     });
 
@@ -402,7 +428,11 @@ int VulkanGraph::record_graph_pipeline()
 
     for_each_output([this](const char* name) {
         auto pos = tensor_map.find(name);
-        if (pos == tensor_map.cend()) return;
+        if (pos == tensor_map.cend())
+        {
+            fprintf(stderr, "%s output tensor is not found.\n", name);
+            return;
+        }
 
         auto& output = pos->second;
 

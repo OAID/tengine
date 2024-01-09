@@ -88,7 +88,7 @@ Concat_vulkan::Concat_vulkan(ir_graph_t* ir_graph, ir_node_t* ir_node, const GPU
     output_w = output_tensor->dims[3];
 
     struct concat_param* param = (struct concat_param*)ir_node->op.param_mem;
-    axis = param->axis;
+    axis = param->axis - 1;
 }
 
 int Concat_vulkan::create_pipeline(const Option& _opt)
