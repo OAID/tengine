@@ -115,7 +115,10 @@ int main(int argc, char* argv[])
     fprintf(stderr, "tengine-lite library version: %s\n", get_tengine_version());
 
     /* create graph, load tengine model xxx.tmfile */
-    graph_t graph = create_graph(nullptr, "tengine", model_file);
+    context_t vk_context = create_context("VK", 1);
+    add_context_device(vk_context, "VK");
+    graph_t graph = create_graph(vk_context, "tengine", model_file);
+    set_graph_device(graph, "VK");
     if (graph == nullptr)
     {
         std::cout << "Create graph0 failed\n";
