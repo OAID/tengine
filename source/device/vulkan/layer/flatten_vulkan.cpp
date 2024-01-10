@@ -39,14 +39,14 @@
 
 #include "flatten_vulkan.hpp"
 #include "../layer_shader_type.h"
+#include "vulkan_layer.hpp"
 
 namespace TEngine {
-
-Flatten_vulkan::Flatten_vulkan()
+Flatten_vulkan::Flatten_vulkan(const GPUDevice* vkdev)
+    : Layer(vkdev)
 {
-    support_vulkan = true;
-    support_image_storage = false;
-
+    support_inplace = false;
+    one_blob_only = true;
     pipeline_flatten = 0;
     pipeline_flatten_pack4 = 0;
     pipeline_flatten_pack1to4 = 0;
@@ -55,11 +55,10 @@ Flatten_vulkan::Flatten_vulkan()
     pipeline_flatten_pack4to8 = 0;
 }
 
-Flatten_vulkan::Flatten_vulkan(ir_graph_t* ir_graph, ir_node_t* ir_node)
+Flatten_vulkan::Flatten_vulkan(ir_graph_t* ir_graph, ir_node_t* ir_node, const GPUDevice* vkdev)
+    : Layer(vkdev)
 {
-    support_vulkan = true;
-    support_image_storage = true;
-
+    one_blob_only = true;
     pipeline_flatten = 0;
     pipeline_flatten_pack4 = 0;
     pipeline_flatten_pack1to4 = 0;
@@ -82,18 +81,15 @@ Flatten_vulkan::Flatten_vulkan(ir_graph_t* ir_graph, ir_node_t* ir_node)
     input_c = input->dims[1]; // param->input_channel;
     input_h = input->dims[2];
     input_w = input->dims[3];
-    output_c = output->dims[1]; // param->output_channel;
-    output_h = output->dims[2];
-    output_w = output->dims[3];
-    output_size = output->dims[3] * output->dims[2] * output->dims[1];
+    output_size = output->elem_num;
 }
 
 int Flatten_vulkan::create_pipeline(const Option& _opt)
 {
     Option opt = _opt;
-    const Tensor& shape = Tensor(input_w, input_h, input_c, (void*)0); // bottom_shapes.empty() ? Mat() : bottom_shapes[0];
+    const Tensor shape(input_w, input_h, input_c, nullptr); // bottom_shapes.empty() ? Mat() : bottom_shapes[0];
     // const Tensor& out_shape = Tensor(output_w, output_h, output_c, (void*)0); // top_shapes.empty() ? Mat() : top_shapes[0];
-    const Tensor& out_shape = Tensor(output_size, (void*)0); // top_shapes.empty() ? Mat() : top_shapes[0];
+    const Tensor out_shape(output_size, nullptr); // top_shapes.empty() ? Mat() : top_shapes[0];
 
     int elempack = 1;
     if (shape.dims == 1) elempack = opt.use_shader_pack8 && shape.w % 8 == 0 ? 8 : shape.w % 4 == 0 ? 4
@@ -133,9 +129,7 @@ int Flatten_vulkan::create_pipeline(const Option& _opt)
     Tensor out_shape_packed;
     if (out_shape.dims == 1) out_shape_packed = Tensor(out_shape.w / out_elempack, (void*)0, out_elemsize, out_elempack);
 
-    // if (!vkdev->shape_support_image_storage(shape_packed) || !vkdev->shape_support_image_storage(out_shape_packed))
     {
-        support_image_storage = false;
         opt.use_image_storage = false;
     }
 

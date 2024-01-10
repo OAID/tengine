@@ -798,7 +798,7 @@ int create_gpu_instance()
             }
             if (gpu_info.support_VK_KHR_16bit_storage)
             {
-                gpu_info.support_fp16_storage = query16BitStorageFeatures.storageBuffer16BitAccess && query16BitStorageFeatures.uniformAndStorageBuffer16BitAccess;
+                gpu_info.support_fp16_storage = query16BitStorageFeatures.storageBuffer16BitAccess && query16BitStorageFeatures.uniformAndStorageBuffer16BitAccess && query16BitStorageFeatures.storageInputOutput16;
             }
             if (gpu_info.support_VK_KHR_shader_float16_int8)
             {
@@ -1945,8 +1945,7 @@ int GPUDevice::create_utility_operator()
                         opt.use_shader_pack8 = true;
 
                         { // create packing layer
-                            TEngine::Packing_vulkan* uop = new Packing_vulkan();
-                            uop->vkdev = this;
+                            TEngine::Packing_vulkan* uop = new Packing_vulkan(this);
 
                             uop->out_elempack = k == 0 ? 1 : k == 1 ? 4
                                                                     : 8;

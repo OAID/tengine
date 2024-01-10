@@ -49,16 +49,6 @@ extern "C" {
 
 // typedef std::map<uint32_t, cl_mem> dict_uint2clmem;
 
-struct VULKANqueue
-{
-    std::string name;
-    int dims;
-    // cl_kernel queue_kernel;
-    // cl_event enentPoint;
-    size_t* queue_global_work_size;
-    size_t* queue_local_work_size;
-};
-
 class VULKANEngine
 {
 public:
@@ -71,11 +61,6 @@ public:
 
 private:
     bool init();
-
-private:
-public:
-    // dict_uint2clmem             vulkan_tensor_map;
-    std::vector<struct VULKANqueue> queue_list;
 
 public:
     int bin_num;

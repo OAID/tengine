@@ -39,21 +39,15 @@
 
 #include "convolutiondepthwise_vulkan.hpp"
 #include "../layer_shader_type.h"
+#include "vulkan_layer.hpp"
 
 namespace TEngine {
 
-ConvolutionDepthWise_vulkan::ConvolutionDepthWise_vulkan()
+ConvolutionDepthWise_vulkan::ConvolutionDepthWise_vulkan(ir_graph_t* ir_graph, ir_node_t* ir_node, const GPUDevice* vkdev)
+    : Layer(vkdev)
 {
-    support_vulkan = true;
-    pipeline_convolutiondepthwise = 0;
-}
-
-ConvolutionDepthWise_vulkan::ConvolutionDepthWise_vulkan(ir_graph_t* ir_graph, ir_node_t* ir_node)
-{
-    support_vulkan = true;
-
+    one_blob_only = true;
     padding = 0;
-
     pipeline_convolutiondepthwise = 0;
     pipeline_convolutiondepthwise_pack4 = 0;
     pipeline_convolutiondepthwise_pack8 = 0;
@@ -94,8 +88,7 @@ int ConvolutionDepthWise_vulkan::create_pipeline(const Option& _opt)
     Option opt = _opt;
 
     {
-        padding = new Padding_vulkan();
-        padding->vkdev = vkdev;
+        padding = new Padding_vulkan(vkdev);
 
         padding->top = pad_h0;
         padding->bottom = pad_h1;

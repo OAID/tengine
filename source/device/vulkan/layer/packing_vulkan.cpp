@@ -39,14 +39,14 @@
 
 #include "packing_vulkan.hpp"
 #include "../layer_shader_type.h"
+#include "vulkan_layer.hpp"
 
 namespace TEngine {
 
-Packing_vulkan::Packing_vulkan()
+Packing_vulkan::Packing_vulkan(const GPUDevice* vkdev)
+    : Layer(vkdev)
 {
-    support_vulkan = true;
-    // support_image_storage = true;
-
+    one_blob_only = true;
     pipeline_packing = 0;
     pipeline_packing_pack4 = 0;
     pipeline_packing_pack8 = 0;
@@ -90,9 +90,7 @@ int Packing_vulkan::create_pipeline(const Option& _opt)
     // if (out_shape.dims == 3) out_shape_packed = Mat(out_shape.w, out_shape.h, out_shape.c / out_elempack, (void*)0, out_elemsize, out_elempack);
 
     // check blob shape
-    // if (!vkdev->shape_support_image_storage(out_shape_packed))
     {
-        // support_image_storage = false;
         opt.use_image_storage = false;
     }
 

@@ -52,8 +52,7 @@ namespace TEngine {
 class InnerProduct_vulkan : public Layer
 {
 public:
-    InnerProduct_vulkan();
-    InnerProduct_vulkan(ir_graph_t* ir_graph, ir_node_t* ir_node);
+    InnerProduct_vulkan(ir_graph_t* ir_graph, ir_node_t* ir_node, const GPUDevice* vkdev);
 
     virtual int create_pipeline(const Option& opt);
     virtual int destroy_pipeline(const Option& opt);

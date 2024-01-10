@@ -39,27 +39,14 @@
 
 #include "eltwise_vulkan.hpp"
 #include "../layer_shader_type.h"
+#include "vulkan_layer.hpp"
 
 namespace TEngine {
 
-Eltwise_vulkan::Eltwise_vulkan()
+Eltwise_vulkan::Eltwise_vulkan(ir_graph_t* ir_graph, ir_node_t* ir_node, const GPUDevice* vkdev)
+    : Layer(vkdev)
 {
-    support_vulkan = true;
-    support_image_storage = false;
-
-    pipeline_eltwise[0] = 0;
-    pipeline_eltwise[1] = 0;
-    pipeline_eltwise_pack4[0] = 0;
-    pipeline_eltwise_pack4[1] = 0;
-    pipeline_eltwise_pack8[0] = 0;
-    pipeline_eltwise_pack8[1] = 0;
-}
-
-Eltwise_vulkan::Eltwise_vulkan(ir_graph_t* ir_graph, ir_node_t* ir_node)
-{
-    support_vulkan = true;
-    support_image_storage = true;
-
+    one_blob_only = false;
     pipeline_eltwise[0] = 0;
     pipeline_eltwise[1] = 0;
     pipeline_eltwise_pack4[0] = 0;
@@ -77,12 +64,13 @@ Eltwise_vulkan::Eltwise_vulkan(ir_graph_t* ir_graph, ir_node_t* ir_node)
         bottoms.push_back(name);
     }
 
-    for (int i = 0; i < ir_node->output_num; i++)
-    {
-        struct tensor* output = get_ir_graph_tensor(graph, node->input_tensors[i]);
-        std::string name = output->name;
-        tops.push_back(name);
-    }
+    struct tensor* output = get_ir_graph_tensor(graph, node->output_tensors[0]);
+    std::string name = output->name;
+    tops.push_back(name);
+
+	output_c = output->dims[1];
+	output_h = output->dims[2];
+	output_w = output->dims[3];
 
     struct eltwise_param* param = (struct eltwise_param*)ir_node->op.param_mem;
     op_type = (param->type) / 2;

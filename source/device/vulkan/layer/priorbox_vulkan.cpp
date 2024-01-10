@@ -42,18 +42,10 @@
 
 namespace TEngine {
 
-PriorBox_vulkan::PriorBox_vulkan()
+PriorBox_vulkan::PriorBox_vulkan(ir_graph_t* ir_graph, ir_node_t* ir_node, const GPUDevice* vkdev)
+    : Layer(vkdev)
 {
-    support_vulkan = true;
-
-    pipeline_priorbox = 0;
-    pipeline_priorbox_mxnet = 0;
-}
-
-PriorBox_vulkan::PriorBox_vulkan(ir_graph_t* ir_graph, ir_node_t* ir_node)
-{
-    support_vulkan = true;
-
+    one_blob_only = false;
     pipeline_priorbox = 0;
     pipeline_priorbox_mxnet = 0;
 

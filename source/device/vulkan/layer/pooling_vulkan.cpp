@@ -39,23 +39,15 @@
 
 #include "pooling_vulkan.hpp"
 #include "../layer_shader_type.h"
+#include "vulkan_layer.hpp"
 
 namespace TEngine {
 
-Pooling_vulkan::Pooling_vulkan()
+Pooling_vulkan::Pooling_vulkan(ir_graph_t* ir_graph, ir_node_t* ir_node, const GPUDevice* vkdev)
+    : Layer(vkdev)
 {
-    support_vulkan = true;
-    pipeline_pooling = 0;
-    pipeline_pooling_pack4 = 0;
-    pipeline_pooling_pack8 = 0;
-    pipeline_pooling_global = 0;
-    pipeline_pooling_global_pack4 = 0;
-    pipeline_pooling_global_pack8 = 0;
-}
+    one_blob_only = true;
 
-Pooling_vulkan::Pooling_vulkan(ir_graph_t* ir_graph, ir_node_t* ir_node)
-{
-    support_vulkan = true;
     pipeline_pooling = 0;
     pipeline_pooling_pack4 = 0;
     pipeline_pooling_pack8 = 0;
@@ -123,8 +115,7 @@ int Pooling_vulkan::create_pipeline(const Option& opt)
     }
 
     {
-        padding = new Padding_vulkan();
-        padding->vkdev = vkdev;
+        padding = new Padding_vulkan(vkdev);
 
         padding->top = pad_h0;
         padding->bottom = pad_h1;

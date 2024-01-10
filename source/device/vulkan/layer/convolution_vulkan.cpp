@@ -39,18 +39,14 @@
 
 #include "convolution_vulkan.hpp"
 #include "../layer_shader_type.h"
+#include "vulkan_layer.hpp"
 
 namespace TEngine {
 
-Convolution_vulkan::Convolution_vulkan()
+Convolution_vulkan::Convolution_vulkan(ir_graph_t* ir_graph, ir_node_t* ir_node, const GPUDevice* vkdev)
+    : Layer(vkdev)
 {
-    support_vulkan = true;
-    pipeline_convolution = 0;
-}
-
-Convolution_vulkan::Convolution_vulkan(ir_graph_t* ir_graph, ir_node_t* ir_node)
-{
-    support_vulkan = true;
+    one_blob_only = true;
     padding = 0;
     innerproduct = 0;
 
@@ -206,18 +202,12 @@ int Convolution_vulkan::create_pipeline(const Option& _opt)
     // bool is_conv1x1s1d1 = false;
     bool is_conv3x3s1d1 = false;
 
-    // if (is_conv3x3s1d1 && num_input >= 16 && num_output >= 16 && ((elempack == 4 && out_elempack == 4) || (elempack == 8 && out_elempack == 8)))
     {
-        // TODO do nothing for wino fix me!!!!!
-    }
-    // else
-    {
-        support_image_storage = false;
         opt.use_image_storage = false;
     }
 
     {
-        padding = new Padding_vulkan();
+        padding = new Padding_vulkan(vkdev);
         padding->vkdev = vkdev;
 
         padding->top = pad_h0;
@@ -443,12 +433,6 @@ int Convolution_vulkan::upload_model(VkTransfer& cmd, const Option& opt)
 
     // ir_tensor* weight_tensor = get_ir_graph_tensor(graph, node->input_tensors[1]);
     // cmd.record_upload(weight_tensor, weight_data_gpu, opt);
-    if (support_image_storage && opt.use_image_storage)
-    {
-        TLOG_INFO("not record_upload weight_data_gpu_image, fix me\n");
-        // cmd.record_upload(weight_data_packed, weight_data_gpu_image, opt);
-    }
-    else
     {
         cmd.record_upload(weight_data_packed, weight_data_gpu, opt);
     }
@@ -464,11 +448,6 @@ int Convolution_vulkan::upload_model(VkTransfer& cmd, const Option& opt)
         Tensor bias_data_packed;
         convert_packing(bias_data, bias_data_packed, out_elempack);
 
-        if (support_image_storage && opt.use_image_storage)
-        {
-            // cmd.record_upload(bias_data_packed, bias_data_gpu_image, opt);
-        }
-        else
         {
             cmd.record_upload(bias_data_packed, bias_data_gpu, opt);
         }
