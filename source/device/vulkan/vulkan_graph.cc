@@ -358,7 +358,7 @@ int VulkanGraph::record_graph_pipeline()
     // upload input tensor
     for (int i = 0; i < sgraph->input_num; ++i)
     {
-        auto input_tensor = sgraph->graph->tensor_list[sgraph->input_tensor_list[i]];
+        auto input_tensor = get_ir_graph_tensor(sgraph->graph, sgraph->input_tensor_list[i]);
         const auto name = get_tensor_name(input_tensor);
         tensor_map_[name] = input_tensor;
         cmd.record_upload(tensor_map_[name], vktensor_map_[name], opt);
