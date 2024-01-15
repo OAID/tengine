@@ -105,7 +105,7 @@
     .global sgemm_4x16_rv64
     .hidden sgemm_4x16_rv64
 sgemm_4x16_rv64:
-    addi            sp, sp, -56
+    addi            sp, sp, -64
     sd              t0, 0(sp)
     sd              t1, 8(sp)
     sd              t2, 16(sp)
@@ -113,11 +113,12 @@ sgemm_4x16_rv64:
     sd              t4, 32(sp)
     sd              t5, 40(sp)
     sd              t6, 48(sp)
+    sd              ra, 56(sp)
 
-    li  t0, 8
-    vsetvli t1, t0, e32, m1
+    call            vsetvl_e32_m1
+    ld              ra, 56(sp)
 
-#     // biases_initial
+// biases_initial
     beqz            a0, none_biases
     vle32.v           v0, (a0)
     vrgather.vi     v16, v0, 0
@@ -549,6 +550,6 @@ end:
     ld            t4, 32(sp)
     ld            t5, 40(sp)
     ld            t6, 48(sp)
-    addi          sp, sp, 56
+    addi          sp, sp, 64 
     ret
     .end

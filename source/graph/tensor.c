@@ -359,3 +359,16 @@ int set_ir_tensor_consumer(ir_tensor_t* ir_tensor, const int index)
 
     return 0;
 }
+
+float tensor_mean(ir_tensor_t* ir_tensor)
+{
+    float sum = .0;
+    float* p = ir_tensor->data;
+    for (int i = 0; i < ir_tensor->elem_num; ++i)
+    {
+        sum += p[i];
+    }
+
+    float mean = sum / (float)ir_tensor->elem_num;
+    return mean;
+}

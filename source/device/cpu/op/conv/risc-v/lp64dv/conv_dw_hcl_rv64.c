@@ -113,9 +113,9 @@ static int score(struct node_ops* node_ops, struct exec_graph* exec_graph, struc
         return 0;
 
     if (param->group > 1 && in_c == 1 && out_c == 1 && pad_h0 == pad_h1 && pad_w0 == pad_w1 && dilation_h == 1 && dilation_w == 1 && kernel_h == 3 && kernel_w == 3 && ((stride_h == 1 && stride_w == 1) || (stride_h == 2 && stride_w == 2)))
-        return OPS_SCORE_BEST;
+        return OPS_SCORE_PREFER;
     else if (param->group > 1 && in_c == 1 && out_c == 1 && pad_h0 == pad_h1 && pad_w0 == pad_w1 && dilation_h == 1 && dilation_w == 1 && kernel_h == 5 && kernel_w == 5 && ((stride_h == 1 && stride_w == 1) || (stride_h == 2 && stride_w == 2)))
-        return OPS_SCORE_BEST;
+        return OPS_SCORE_PREFER;
     else
         return 0;
 }
