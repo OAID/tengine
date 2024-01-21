@@ -14,8 +14,11 @@
 .hidden im2col_fp32_3x3_tile8
 
 im2col_fp32_3x3_tile8:
-    li  t0, 8
-    vsetvli t1, t0, e32, m2
+    addi    sp, sp, -8
+    sd      ra, (sp)
+
+    call    vsetvl_e32_m2
+    ld          ra, (sp)
 
     slli    a1, a1, 2
     // a2 = out_xy
@@ -137,5 +140,6 @@ stride2_channel_loop:
     bnez        a3, stride2_channel_loop
     
 finish:
+    addi        sp, sp, 8
     ret
     .end

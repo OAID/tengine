@@ -82,8 +82,10 @@
         .global sgemm_4x4_rv64
         .hidden sgemm_4x4_rv64
 sgemm_4x4_rv64:
-        li  t0, 8
-        vsetvli t1, t0, e32, m1
+        addi    sp, sp, -8
+        sd      ra, (sp)
+        call    vsetvl_e32_m1
+        ld      ra, (sp)
 
         slli            a5, a5, 0x2
 #       // initial biases
@@ -239,6 +241,7 @@ save_result_nchw:
         vse32.v           v19, (t6)
 
 end:
+    addi    sp, sp, 8
 	ret
     .end
 

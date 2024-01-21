@@ -13,19 +13,6 @@ extern void sgemm_8x8_rv64(float* cur_col, float* cur_kernel, float* bias, int a
 extern void im2col_tile8(float* input, float* col, int in_c, int in_w, int in_h, int k_w, int k_h, int s_w, int s_h, int d_w,
                          int d_h, int pad_w0, int pad_w1, int pad_h0, int pad_h1, int out_w, int out_h, int num_thread);
 
-static float tensor_mean(struct tensor* t)
-{
-    size_t n = t->dims[0] * t->dims[1] * t->dims[2] * t->dims[3];
-    const float* data = t->data;
-    float sum = .0f;
-    for (size_t i = 0; i < n; ++i)
-    {
-        sum += data[i];
-    }
-
-    return sum / n;
-}
-
 static void interleave_kernel(float* kernel, float* kernel_interleaved, int kernel_chan, int kernel_size)
 {
     int i, j, k;

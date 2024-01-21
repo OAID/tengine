@@ -49,7 +49,7 @@
         .global im2col_fp32_1x1
         .hidden im2col_fp32_1x1
 im2col_fp32_1x1:
-	addi    sp, sp, -56
+	addi    sp, sp, -64
 	sd      t0, 0(sp)
 	sd      t1, 8(sp)
 	sd      t2, 16(sp)
@@ -57,9 +57,10 @@ im2col_fp32_1x1:
 	sd      t4, 32(sp)
 	sd      t5, 40(sp)
 	sd      t6, 48(sp)
+    sd      ra, 56(sp)
 
-    li  t0, 8
-    vsetvli t1, t0, e32, m1
+    call    vsetvl_e32_m1
+    ld      ra, 56(sp)
 
 	li 		t0, 4
 	blt 	a3, t0, col_end
@@ -112,6 +113,6 @@ col_end:
 	ld      t4, 32(sp)
 	ld      t5, 40(sp)
 	ld      t6, 48(sp)
-	addi    sp, sp, 56
+	addi    sp, sp, 64 
 	ret
 	.end

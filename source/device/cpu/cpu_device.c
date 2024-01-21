@@ -215,6 +215,16 @@ static int run(struct device* dev, struct subgraph* subgraph)
         }
 
 #endif
+#if 0
+        struct node* ir_node = node->ir_node;
+        struct graph* ir_graph = ir_node->graph;
+        for (int i = 0; i < ir_node->output_num; ++i)
+        {
+            struct tensor* ir_tensor = get_ir_graph_tensor(ir_graph, ir_node->output_tensors[i]);
+            float mean = tensor_mean(ir_tensor);
+            fprintf(stderr, "%s output %d, mean: %f\n", ir_node->name, i, mean);
+        }
+#endif
     }
 
     return 0;

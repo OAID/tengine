@@ -12,8 +12,10 @@
 //a6 kernel_size
 
 sgemm_8x8_rv64:
-    li  t0, 8
-    vsetvli t1, t0, e32, m2
+    addi    sp, sp, -8
+    sd      ra, (sp)
+    call    vsetvl_e32_m2
+    ld      ra, (sp)
 
     srli    t0, a6, 0x2
     andi    t1, a6, 0x3
@@ -218,5 +220,7 @@ save_result:
     vse32.v     v28, (a4)
     add         a4, a4, a5
     vse32.v     v30, (a4)
+finish:
+    addi        sp, sp, 8
     ret
     .end

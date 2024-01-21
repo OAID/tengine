@@ -55,7 +55,7 @@ mask_32b:
         0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff
 
 im2col_fp32_3x3:
-        addi            sp, sp, -56
+        addi            sp, sp, -64
         sd              t0, 0(sp)
         sd              t1, 8(sp)
         sd              t2, 16(sp)
@@ -63,9 +63,10 @@ im2col_fp32_3x3:
         sd              t4, 32(sp)
         sd              t5, 40(sp)
         sd              t6, 48(sp)
+        sd              ra, 56(sp)
 
-        li  t0, 8
-        vsetvli t1, t0, e32, m1
+        call            vsetvl_e32_m1
+        ld              ra, 56(sp)
 
 	// initial
         beqz            a3, finish
@@ -197,6 +198,6 @@ finish:
         ld              t4, 32(sp)
         ld              t5, 40(sp)
         ld              t6, 48(sp)
-        addi            sp, sp, 56
+        addi            sp, sp, 64 
 	ret
 	.end

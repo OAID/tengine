@@ -13,8 +13,11 @@
 .hidden im2col_fp32_1x1_tile8
 
 im2col_fp32_1x1_tile8:
-    li  t0, 8
-    vsetvli t1, t0, e32, m2
+    addi    sp, sp, -8
+    sd      ra, 0(sp)
+
+    call    vsetvl_e32_m2
+    ld      ra, 0(sp)
 
     slli    a1, a1, 2
     slli    t0, a1, 1
@@ -47,5 +50,6 @@ channel_last:
     vse32.v v0, (a2)
 
 end:
+    addi    sp, sp, 8
     ret
     .end
