@@ -1,6 +1,5 @@
 #include "api/c_api.h"
 #include <string.h>
-#include "conv_dw_packn_kernel_rv64.h"
 #include "graph/graph.h"
 #include "graph/node.h"
 #include "graph/tensor.h"
@@ -10,6 +9,8 @@
 #include "op/conv/risc-v/lp64dv/vsetvl_rvv.h"
 #include "utility/sys_port.h"
 #include <stdio.h>
+#include "utility/sys_port.h"
+#include "convolution_param.h"
 
 #define __likely(x)   __builtin_expect(!!(x), 1)
 #define __unlikely(x) __builtin_expect(!!(x), 0)
