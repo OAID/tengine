@@ -1418,7 +1418,8 @@ void convdw3x3s2_pack8_rvv(const float* input, const float* kernel, const float*
                             "vmv.v.x    v18, t0;\n"
                             "vmv.v.x    v20, t0;\n"
                             :
-                            : "r"(bias_base));
+                            : "r"(bias_base)
+                            : "t0");
                 }
                 else
                 {
@@ -1483,7 +1484,8 @@ void convdw3x3s2_pack8_rvv(const float* input, const float* kernel, const float*
                     "vfmacc.vv v20, v14, v24;\n"
                     "vfmacc.vv v20, v16, v26;\n"
                     :
-                    : "r"(output_base), "r"(row0), "r"(row1), "r"(row2), "r"(row3), "r"(row4));
+                    : "r"(output_base), "r"(row0), "r"(row1), "r"(row2), "r"(row3), "r"(row4)
+                    : "t0", "t1");
 
                 if (act == 0)
                 {
@@ -1585,7 +1587,8 @@ void convdw3x3s2_pack8_rvv(const float* input, const float* kernel, const float*
                     __asm__("lw         t0, (%0)\n"
                             "vmv.v.x    v18, t0;\n"
                             :
-                            : "r"(bias_base));
+                            : "r"(bias_base)
+                            : "t0");
                 }
                 else
                 {
@@ -1625,7 +1628,8 @@ void convdw3x3s2_pack8_rvv(const float* input, const float* kernel, const float*
                     "vfmacc.vv v18, v14, v24;\n"
                     "vfmacc.vv v18, v16, v26;\n"
                     :
-                    : "r"(row0), "r"(row1), "r"(row2));
+                    : "r"(row0), "r"(row1), "r"(row2)
+                    : "t0", "t1");
 
                 if (act == 0)
                 {
