@@ -1,5 +1,4 @@
 #include "convolution_param.h"
-#include "conv_dw_packn_kernel_rv64.h"
 #include "api/c_api.h"
 
 #include "graph/graph.h"
