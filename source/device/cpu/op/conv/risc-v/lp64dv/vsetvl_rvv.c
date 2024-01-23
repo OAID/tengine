@@ -10,9 +10,11 @@ void vsetvl_e32_m1(void)
             :
             : "t0", "t1");
 #else
-    __asm__("vsetvli %0, %1, e32, m1;\n"
-            : "=r"(n)
-            : "r"(packn));
+    __asm__("li t0, 4; \n"
+            "vsetvli t1, t0, e32, m1;\n"
+            :
+            :
+            : "t0", "t1");
 #endif
 }
 
@@ -26,8 +28,11 @@ void vsetvl_e32_m2(void)
             :
             : "t0", "t1");
 #else
-    __asm__("vsetvli %0, %1, e32, m2;\n"
-            : "=r"(n)
-            : "r"(packn));
+    __asm__(
+        "li t1, 8;\n"
+        "vsetvli t0, t1, e32, m2;\n"
+        :
+        :
+        : "t0", "t1");
 #endif
 }

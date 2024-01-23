@@ -94,6 +94,8 @@ OPTION (TENGINE_ENABLE_MODEL_CACHE          "NPU kernel cache file option"      
 # Online report
 OPTION (TENGINE_ONLINE_REPORT               "online report"                             ON)
 
+OPTION (TENGINE_RV64_RVV_C906               "build for c906"                            OFF)
+
 # Do check list
 INCLUDE ("${CMAKE_CURRENT_SOURCE_DIR}/cmake/check.cmake")
 INCLUDE ("${CMAKE_CURRENT_SOURCE_DIR}/cmake/cuda.cmake")
@@ -113,6 +115,10 @@ ENABLE_TESTING ()
 # Set cmake default folder name
 SET_PROPERTY(GLOBAL PROPERTY USE_FOLDERS ON)
 SET_PROPERTY(GLOBAL PROPERTY PREDEFINED_TARGETS_FOLDER "cmake")
+
+IF (TENGINE_RV64_RVV_C906)
+    set(TENGINE_TOOLCHAIN_ASM_FLAG "-D__FIX_RVV_C906 ${TENGINE_TOOLCHAIN_ASM_FLAG}")
+ENDIF()
 
 # Main source files
 ADD_SUBDIRECTORY (source)
