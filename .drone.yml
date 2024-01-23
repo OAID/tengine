@@ -1,0 +1,33 @@
+---
+kind: pipeline
+name: TengineRV64
+platform:
+  os: linux
+  arch: amd64 
+
+steps:
+  - name: build
+    image: ubuntu20.04:qemu
+    commands:
+      - PATH=$PATH:/home/riscv/bin cmake -DCMAKE_TOOLCHAIN_FILE=toolchains/rv64-c906.toolchain.cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_BUILD_TYPE=RELEASE -DTENGINE_BUILD_QUANT_TOOL=OFF -DTENGINE_ONLINE_REPORT=OFF -B build
+      - PATH=$PATH:/home/riscv/bin cmake --build build -- -j`cat /proc/cpuinfo | grep 'processor' | wc -l` VERBOSE=1 
+  - name: test
+    image: ubuntu20.04:qemu
+    commands:
+      - wget https://download.conleylee.com/tengine/tmfiles/mobilenet.tmfile
+      - wget https://download.conleylee.com/tengine/images/cat.jpg
+      - qemu-riscv64 -d cpu_reset -cpu rv64,v=true -E TG_DEBUG_TIME=1 -L /home/riscv/sysroot build/examples/tm_classification -m mobilenet.tmfile -i cat.jpg -g 224,224 -s 0.017,0.017,0.017 -w 104.007,116.669,122.679 -r 1 -t 1
+  - name: notify
+    image: ubuntu20.04:drone_script 
+    environment:
+      MATTERMOST_TOKEN:
+        from_secret: MATTERMOST_TOKEN
+      GITEA_API_TOKEN:
+        from_secret: gitea_api_token
+    commands:
+      - 'export DRONE_SCRIPT_DOWNLOAD_LINK=https://download.conleylee.com/scripts/drone_bot.py'
+      - 'wget $${DRONE_SCRIPT_DOWNLOAD_LINK}'
+      - pip3 install mattermostdriver
+      - python3 `basename $${DRONE_SCRIPT_DOWNLOAD_LINK}` 
+    when:
+      status: [success, failure]
