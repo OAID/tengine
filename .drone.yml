@@ -14,10 +14,16 @@ steps:
   - name: test
     image: ubuntu20.04:qemu
     commands:
-      - apt install lcov -y
-      - wget https://download.conleylee.com/tengine/tmfiles/mobilenet.tmfile
-      - wget https://download.conleylee.com/tengine/images/cat.jpg
-      - qemu-riscv64 -d cpu_reset -cpu rv64,v=true -E TG_DEBUG_TIME=1 -L /home/riscv/sysroot build/examples/tm_classification -m mobilenet.tmfile -i cat.jpg -g 224,224 -s 0.017,0.017,0.017 -w 104.007,116.669,122.679 -r 1 -t 1
+      - cd build
+      - wget http://192.168.3.19:9999/tengine_model_zoo/ci_data/models.tar.gz
+      - wget http://192.168.3.19:9999/tengine_model_zoo/ci_data/images.tar.gz
+      - wget http://192.168.3.19:9999/tengine_model_zoo/ci_data/data_arm64.tar.gz
+      - mkdir models images data
+      - tar zxvf models.tar.gz -C models
+      - tar zxvf images.tar.gz -C images
+      - tar zxvf data_arm64.tar.gz -C data
+      - export QEMU_CMD='qemu-riscv64 -cpu rv64,v=true -E TG_DEBUG_TIME=1 -L /home/riscv/sysroot'
+      - ../tests/test_rv64.sh
   - name: notify
     image: ubuntu20.04:drone_script 
     environment:
