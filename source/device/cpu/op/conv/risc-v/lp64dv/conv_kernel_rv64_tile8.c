@@ -171,7 +171,7 @@ int conv_hcl_prerun_tile8(struct node* ir_node, struct tensor* input_tensor, str
     {
         int kernel_size = filter_tensor->dims[1] * filter_tensor->dims[2] * filter_tensor->dims[3];
         int out_chan = filter_tensor->dims[0] / param->group;
-        out_chan = (out_chan + 8) / 8 * 8; //align to 8
+        out_chan = (out_chan + 7) / 8 * 8; //align to 8
         int mem_size = out_chan * kernel_size * filter_tensor->elem_size * param->group;
         info->interleave_buffer = sys_malloc(mem_size);
         info->interleave_buffer_size = mem_size;
@@ -253,7 +253,6 @@ int conv_hcl_run_tile8(struct node* ir_node, struct tensor* input_tensor, struct
             im2col_tile8(cur_input, col, in_c, in_w, in_h, k_w, k_h, s_w, s_h, d_w, d_h, p_w0, p_w1, p_h0, p_h1, out_w, out_h, num_thread);
 
             float* output_base = output + n * output_image_size + g * output_size;
-            volatile float* peek = output_base + out_xy;
             for (int out_chan_ = 0; out_chan_ < out_c_align8; out_chan_ += PER_OUT_CHAN)
             {
                 float* cur_kernel = interleaved_kernel + g * out_c_align8 * kernel_size + out_chan_ * kernel_size;

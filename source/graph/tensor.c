@@ -372,3 +372,25 @@ float tensor_mean(ir_tensor_t* ir_tensor)
     float mean = sum / (float)ir_tensor->elem_num;
     return mean;
 }
+
+void save_tensor(const char* fname, const float* data, const int* dims, const int dim_num)
+{
+    FILE* fout = fopen(fname, "w+");
+    int n = 1;
+    for (int i = 0; i < dim_num; ++i)
+    {
+        n *= dims[i];
+        fprintf(fout, "%d ", dims[i]);
+    }
+    fprintf(fout, "\n");
+
+    for (int i = 0; i < n; ++i)
+    {
+        fprintf(fout, "%f ", data[i]);
+    }
+    fprintf(fout, "\n");
+    fflush(fout);
+    fclose(fout);
+}
+
+

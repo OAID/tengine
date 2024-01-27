@@ -105,7 +105,8 @@ void im2col_tile8(float* input, float* col, int in_c, int in_w, int in_h, int k_
     if (k_w == 1 && k_h == 1 && s_w == 1 && s_h == 1)
     {
 #pragma omp parallel for num_threads(num_thread)
-        for (int col_i = 0; col_i < out_xy - 7; col_i += 8)
+        int col_i = 0;
+        for (; col_i < out_xy - 7; col_i += 8)
         {
             float* cur_col = col + col_i * kernel_size;
             const float* cur_input = input + col_i;
@@ -117,7 +118,6 @@ void im2col_tile8(float* input, float* col, int in_c, int in_w, int in_h, int k_
             return;
         }
 
-        const int col_i = out_xy & -8;
         float* cur_col = col + col_i * kernel_size;
         for (int col_j = 0; col_j < kernel_size; ++col_j)
         {
@@ -137,7 +137,8 @@ void im2col_tile8(float* input, float* col, int in_c, int in_w, int in_h, int k_
     }
     else if (d_w == 1 && d_h == 1 && k_w == 3 && k_h == 3 && s_w == s_h)
     {
-        for (int col_i = 0; col_i < (out_xy & -7); col_i += 8)
+        int col_i = 0;
+        for (; col_i < (out_xy & -8); col_i += 8)
         {
             float* cur_col = col + col_i * kernel_size;
             int imy0 = col_i / out_w;
@@ -150,7 +151,7 @@ void im2col_tile8(float* input, float* col, int in_c, int in_w, int in_h, int k_
             int imy_start = imy0 * s_h - pad_h0;
             int imy_end = imy7 * s_h - pad_h0;
 #if 1
-            if ((imy0 == imy7) && (is_pad0 || (imx_start >= 0 && imx_end < in_w - 8 && imy_start >= 0 && imy_end < in_h)))
+            if ((imy0 == imy7) && (is_pad0 || (imx_start >= 0 && imx_end < in_w - 8 && imy_start >= 0 && imy_end + 2 < in_h)))
             {
                 float* cur_input = input + imy_start * in_w + imx_start;
                 im2col_fp32_3x3_tile8(cur_input, in_w, in_h, in_c, cur_col, s_w);
@@ -163,7 +164,6 @@ void im2col_tile8(float* input, float* col, int in_c, int in_w, int in_h, int k_
             }
         }
 
-        int col_i = out_xy & -7;
         if (col_end7)
         {
             float* cur_col = col + col_i * kernel_size;
@@ -172,13 +172,13 @@ void im2col_tile8(float* input, float* col, int in_c, int in_w, int in_h, int k_
     }
     else
     {
-        for (int col_i = 0; col_i < out_xy - 7; col_i += 8)
+        int col_i = 0;
+        for (; col_i < (out_xy & -8); col_i += 8)
         {
             float* cur_col = col + col_i * kernel_size;
             trans_col(input, cur_col, col_i, in_c, in_h, in_w, k_w, k_h, s_w, s_h, pad_w0, pad_h0, out_w, out_h, d_h, d_w);
         }
 
-        int col_i = out_xy & -7;
         if (col_end7)
         {
             float* cur_col = col + col_i * kernel_size;

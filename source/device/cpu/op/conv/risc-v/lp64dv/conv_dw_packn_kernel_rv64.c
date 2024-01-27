@@ -17,37 +17,6 @@
 #define max(a, b)     ((a) > (b) ? (a) : (b))
 #define min(a, b)     ((a) < (b) ? (a) : (b))
 
-void save_tensor(const char* fname, const float* data, const int* dims, const int dim_num)
-{
-    FILE* fout = fopen(fname, "w+");
-    int n = 1;
-    for (int i = 0; i < dim_num; ++i)
-    {
-        n *= dims[i];
-        fprintf(fout, "%d ", dims[i]);
-    }
-    fprintf(fout, "\n");
-
-    for (int i = 0; i < n; ++i)
-    {
-        fprintf(fout, "%f ", data[i]);
-    }
-    fprintf(fout, "\n");
-    fflush(fout);
-    fclose(fout);
-}
-
-void fname_normalize(const char* fname)
-{
-    for (char* pos = fname; *pos != '\0'; ++pos)
-    {
-        if (*pos == '/')
-        {
-            *pos = '_';
-        }
-    }
-}
-
 // TODO: vectorize
 static void pad(const float* input, float* output, const int in_h, const int in_w, const int out_h, const int out_w, const int top, const int left, const float v)
 {

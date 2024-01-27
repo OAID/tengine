@@ -18,7 +18,7 @@ sgemm_8x8_rv64:
     ld      ra, (sp)
 
     srli    t0, a6, 0x2
-    andi    t1, a6, 0x3
+    andi    t1, a6, 0x7
     slli    a5, a5, 0x2
 
     beqz    a2, none_biases

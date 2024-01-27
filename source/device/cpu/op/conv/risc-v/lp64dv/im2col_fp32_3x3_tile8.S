@@ -85,8 +85,8 @@ stride1_channel_loop:
     j finish
 
 stride2_channel_loop:
-    li  t2, 8
-    mv  t3, a0
+    li   t2, 8
+    mv   t3, a0
 
     vlse32.v    v0, (t3), t2
     addi        t3, a0, 0x4
