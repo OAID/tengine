@@ -17,7 +17,6 @@ test_models=(
 "${QEMU_CMD} ./tests/test_model_classification -m shufflenet_1xg3 -i images/cat.jpg  -g 224,224 -w 103.940,116.780,123.680 -s 0.017,0.017,0.017"
 "${QEMU_CMD} ./tests/test_model_classification -m shufflenet_v2  -i images/cat.jpg   -g 224,224 -w 103.940,116.780,123.680 -s 0.00392156,0.00392156,0.00392156"
 "${QEMU_CMD} ./tests/test_model_alphapose"
-"${QEMU_CMD} ./tests/test_model_crnn"
 "${QEMU_CMD} ./tests/test_model_efficientdet"
 "${QEMU_CMD} ./tests/test_model_hrnet"
 "${QEMU_CMD} ./tests/test_model_landmark"

@@ -106,11 +106,30 @@ void im2col_tile8(float* input, float* col, int in_c, int in_w, int in_h, int k_
     {
 #pragma omp parallel for num_threads(num_thread)
         int col_i = 0;
-        for (; col_i < out_xy - 7; col_i += 8)
+        for (; col_i < (out_xy & -8); col_i += 8)
         {
             float* cur_col = col + col_i * kernel_size;
             const float* cur_input = input + col_i;
-            im2col_fp32_1x1_tile8(cur_input, in_xy, cur_col, in_c, 8);
+
+            int imy0 = col_i / out_w;
+            int imy7 = (col_i + 7) / out_w;
+            int imx0 = col_i - imy0 * out_w;
+            int imx7 = (col_i + 7) - imy7 * out_w;
+
+            int imx_start = imx0 * s_w - pad_w0;
+            int imx_end = imx7 * s_w - pad_w0;
+            int imy_start = imy0 * s_h - pad_h0;
+            int imy_end = imy7 * s_h - pad_h0;
+
+            // is pad ?
+            if (imy0 == imy7 && (is_pad0 || (imx_start >= 0 && imx_end < in_w && imy_start >= 0 && imy_end < in_h)))
+            {
+                im2col_fp32_1x1_tile8(cur_input, in_xy, cur_col, in_c, 8);
+            }
+            else
+            {
+                trans_col(input, cur_col, col_i, in_c, in_h, in_w, k_w, k_h, s_w, s_h, pad_w0, pad_h0, out_w, out_h, d_h, d_w);
+            }
         }
 
         if (!col_end7)
@@ -150,7 +169,6 @@ void im2col_tile8(float* input, float* col, int in_c, int in_w, int in_h, int k_
             int imx_end = imx7 * s_w - pad_w0;
             int imy_start = imy0 * s_h - pad_h0;
             int imy_end = imy7 * s_h - pad_h0;
-#if 1
             if ((imy0 == imy7) && (is_pad0 || (imx_start >= 0 && imx_end < in_w - 8 && imy_start >= 0 && imy_end + 2 < in_h)))
             {
                 float* cur_input = input + imy_start * in_w + imx_start;
@@ -158,7 +176,6 @@ void im2col_tile8(float* input, float* col, int in_c, int in_w, int in_h, int k_
                 cur_col += 8 * kernel_size;
             }
             else
-#endif
             {
                 trans_col(input, cur_col, col_i, in_c, in_h, in_w, k_w, k_h, s_w, s_h, pad_w0, pad_h0, out_w, out_h, d_h, d_w);
             }
