@@ -15,9 +15,9 @@ steps:
     image: ubuntu20.04:qemu
     commands:
       - cd build
-      - wget http://192.168.3.19:9999/tengine_model_zoo/ci_data/models.tar.gz
-      - wget http://192.168.3.19:9999/tengine_model_zoo/ci_data/images.tar.gz
-      - wget http://192.168.3.19:9999/tengine_model_zoo/ci_data/data_arm64.tar.gz
+      - wget -nv http://192.168.3.19:9999/tengine_model_zoo/ci_data/models.tar.gz
+      - wget -nv http://192.168.3.19:9999/tengine_model_zoo/ci_data/images.tar.gz
+      - wget -nv http://192.168.3.19:9999/tengine_model_zoo/ci_data/data_arm64.tar.gz
       - mkdir models images data
       - tar zxvf models.tar.gz -C models
       - tar zxvf images.tar.gz -C images
