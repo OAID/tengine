@@ -21,7 +21,7 @@ steps:
       - mkdir models images data
       - tar zxvf models.tar.gz -C models
       - tar zxvf images.tar.gz -C images
-      - tar zxvf data_arm64.tar.gz -C data
+      - tar zxvf data_x86.tar.gz -C data
       - export QEMU_CMD='qemu-riscv64 -cpu rv64,v=true -E TG_DEBUG_TIME=1 -L /home/riscv/sysroot'
       - ../tests/test_rv64.sh
   - name: notify
