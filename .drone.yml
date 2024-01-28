@@ -9,7 +9,7 @@ steps:
   - name: build
     image: ubuntu20.04:qemu
     commands:
-      - PATH=$PATH:/home/riscv/bin cmake -DCMAKE_TOOLCHAIN_FILE=toolchains/rv64-c906.toolchain.cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_BUILD_TYPE=RELEASE -B build
+      - PATH=$PATH:/home/riscv/bin cmake -DCMAKE_TOOLCHAIN_FILE=toolchains/rv64-c906.toolchain.cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_BUILD_TYPE=RELEASE -DTENGINE_BUILD_TESTS=ON -B build
       - PATH=$PATH:/home/riscv/bin cmake --build build -- -j`cat /proc/cpuinfo | grep 'processor' | wc -l` VERBOSE=1 
   - name: test
     image: ubuntu20.04:qemu
