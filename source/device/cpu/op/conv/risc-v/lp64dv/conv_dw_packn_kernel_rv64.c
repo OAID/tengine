@@ -309,6 +309,7 @@ void convdw3x3s1_pack8_rvv(const float* input, const float* kernel, const float*
             const float k20 = kernel_base[6];
             const float k21 = kernel_base[7];
             const float k22 = kernel_base[8];
+            float bias_value = bias_base ? bias_base[0] : .0f;
 
             for (; w < outw; ++w)
             {
@@ -325,8 +326,8 @@ void convdw3x3s1_pack8_rvv(const float* input, const float* kernel, const float*
                 const float i31 = row3[1];
                 const float i32 = row3[2];
 
-                float out1 = (k00 * i00 + k01 * i01 + k02 * i02 + k10 * i10 + k11 * i11 + k12 * i12 + k20 * i20 + k21 * i21 + k22 * i22 + bias_base[0]);
-                float out2 = (k00 * i10 + k01 * i11 + k02 * i12 + k10 * i20 + k11 * i21 + k12 * i22 + k20 * i30 + k21 * i31 + k22 * i32 + bias_base[0]);
+                float out1 = (k00 * i00 + k01 * i01 + k02 * i02 + k10 * i10 + k11 * i11 + k12 * i12 + k20 * i20 + k21 * i21 + k22 * i22 + bias_value);
+                float out2 = (k00 * i10 + k01 * i11 + k02 * i12 + k10 * i20 + k11 * i21 + k12 * i22 + k20 * i30 + k21 * i31 + k22 * i32 + bias_value);
 
                 if (act >= 0)
                 {
@@ -442,6 +443,7 @@ void convdw3x3s1_pack8_rvv(const float* input, const float* kernel, const float*
             const float k20 = kernel_base[6];
             const float k21 = kernel_base[7];
             const float k22 = kernel_base[8];
+            const float bias_value = bias_base ? bias_base[0] : .0f;
 
             for (; w < outw; ++w)
             {
@@ -455,7 +457,7 @@ void convdw3x3s1_pack8_rvv(const float* input, const float* kernel, const float*
                 const float i21 = row2[1];
                 const float i22 = row2[2];
 
-                float out1 = (k00 * i00 + k01 * i01 + k02 * i02 + k10 * i10 + k11 * i11 + k12 * i12 + k20 * i20 + k21 * i21 + k22 * i22 + bias_base[0]);
+                float out1 = (k00 * i00 + k01 * i01 + k02 * i02 + k10 * i10 + k11 * i11 + k12 * i12 + k20 * i20 + k21 * i21 + k22 * i22 + bias_value);
 
                 if (act >= 0)
                 {
@@ -691,6 +693,7 @@ void convdw3x3s1_pack4_rvv(const float* input, const float* kernel, const float*
             const float k20 = kernel_base[6];
             const float k21 = kernel_base[7];
             const float k22 = kernel_base[8];
+            const float bias_value = bias_base ? bias_base[0] : .0f;
 
             for (; w < outw; ++w)
             {
@@ -718,10 +721,10 @@ void convdw3x3s1_pack4_rvv(const float* input, const float* kernel, const float*
                 const float i51 = row5[1];
                 const float i52 = row5[2];
 
-                float v0 = (k00 * i00 + k01 * i01 + k02 * i02 + k10 * i10 + k11 * i11 + k12 * i12 + k20 * i20 + k21 * i21 + k22 * i22 + bias_base[0]);
-                float v1 = (k00 * i10 + k01 * i11 + k02 * i12 + k10 * i20 + k11 * i21 + k12 * i22 + k20 * i30 + k21 * i31 + k22 * i32 + bias_base[0]);
-                float v2 = (k00 * i20 + k01 * i21 + k02 * i22 + k10 * i30 + k11 * i31 + k12 * i32 + k20 * i40 + k21 * i41 + k22 * i42 + bias_base[0]);
-                float v3 = (k00 * i30 + k01 * i31 + k02 * i32 + k10 * i40 + k11 * i41 + k12 * i42 + k20 * i50 + k21 * i51 + k22 * i52 + bias_base[0]);
+                float v0 = (k00 * i00 + k01 * i01 + k02 * i02 + k10 * i10 + k11 * i11 + k12 * i12 + k20 * i20 + k21 * i21 + k22 * i22 + bias_value);
+                float v1 = (k00 * i10 + k01 * i11 + k02 * i12 + k10 * i20 + k11 * i21 + k12 * i22 + k20 * i30 + k21 * i31 + k22 * i32 + bias_value);
+                float v2 = (k00 * i20 + k01 * i21 + k02 * i22 + k10 * i30 + k11 * i31 + k12 * i32 + k20 * i40 + k21 * i41 + k22 * i42 + bias_value);
+                float v3 = (k00 * i30 + k01 * i31 + k02 * i32 + k10 * i40 + k11 * i41 + k12 * i42 + k20 * i50 + k21 * i51 + k22 * i52 + bias_value);
 
                 if (act >= 0)
                 {
@@ -856,6 +859,7 @@ void convdw3x3s1_pack4_rvv(const float* input, const float* kernel, const float*
             const float k20 = kernel_base[6];
             const float k21 = kernel_base[7];
             const float k22 = kernel_base[8];
+            const float bias_value = bias_base ? bias_base[0] : .0f;
 
             for (; w < outw; ++w)
             {
@@ -871,7 +875,7 @@ void convdw3x3s1_pack4_rvv(const float* input, const float* kernel, const float*
                 const float i21 = row2[1];
                 const float i22 = row2[2];
 
-                float v0 = (k00 * i00 + k01 * i01 + k02 * i02 + k10 * i10 + k11 * i11 + k12 * i12 + k20 * i20 + k21 * i21 + k22 * i22 + bias_base[0]);
+                float v0 = (k00 * i00 + k01 * i01 + k02 * i02 + k10 * i10 + k11 * i11 + k12 * i12 + k20 * i20 + k21 * i21 + k22 * i22 + bias_value);
 
                 if (act >= 0)
                 {
@@ -1130,6 +1134,7 @@ void convdw3x3s2_pack4_rvv(const float* input, const float* kernel, const float*
             const float k20 = kernel_base[6];
             const float k21 = kernel_base[7];
             const float k22 = kernel_base[8];
+            const float bias_value = bias_base ? bias_base[0] : .0f;
 
             for (; w < outw; ++w)
             {
@@ -1161,10 +1166,10 @@ void convdw3x3s2_pack4_rvv(const float* input, const float* kernel, const float*
                 const float i81 = row8[1];
                 const float i82 = row8[2];
 
-                float v0 = (k00 * i00 + k01 * i01 + k02 * i02 + k10 * i10 + k11 * i11 + k12 * i12 + k20 * i20 + k21 * i21 + k22 * i22 + bias_base[0]);
-                float v1 = (k00 * i20 + k01 * i21 + k02 * i22 + k10 * i30 + k11 * i31 + k12 * i32 + k20 * i40 + k21 * i41 + k22 * i42 + bias_base[0]);
-                float v2 = (k00 * i40 + k01 * i41 + k02 * i42 + k10 * i50 + k11 * i51 + k12 * i52 + k20 * i60 + k21 * i61 + k22 * i62 + bias_base[0]);
-                float v3 = (k00 * i60 + k01 * i61 + k02 * i62 + k10 * i70 + k11 * i71 + k12 * i72 + k20 * i80 + k21 * i81 + k22 * i82 + bias_base[0]);
+                float v0 = (k00 * i00 + k01 * i01 + k02 * i02 + k10 * i10 + k11 * i11 + k12 * i12 + k20 * i20 + k21 * i21 + k22 * i22 + bias_value);
+                float v1 = (k00 * i20 + k01 * i21 + k02 * i22 + k10 * i30 + k11 * i31 + k12 * i32 + k20 * i40 + k21 * i41 + k22 * i42 + bias_value);
+                float v2 = (k00 * i40 + k01 * i41 + k02 * i42 + k10 * i50 + k11 * i51 + k12 * i52 + k20 * i60 + k21 * i61 + k22 * i62 + bias_value);
+                float v3 = (k00 * i60 + k01 * i61 + k02 * i62 + k10 * i70 + k11 * i71 + k12 * i72 + k20 * i80 + k21 * i81 + k22 * i82 + bias_value);
 
                 if (act >= 0)
                 {
@@ -1302,6 +1307,7 @@ void convdw3x3s2_pack4_rvv(const float* input, const float* kernel, const float*
             const float k20 = kernel_base[6];
             const float k21 = kernel_base[7];
             const float k22 = kernel_base[8];
+            const float bias_value = bias_base ? bias_base[0] : .0f;
 
             for (; w < outw; ++w)
             {
@@ -1315,7 +1321,7 @@ void convdw3x3s2_pack4_rvv(const float* input, const float* kernel, const float*
                 const float i21 = row2[1];
                 const float i22 = row2[2];
 
-                float v0 = (k00 * i00 + k01 * i01 + k02 * i02 + k10 * i10 + k11 * i11 + k12 * i12 + k20 * i20 + k21 * i21 + k22 * i22 + bias_base[0]);
+                float v0 = (k00 * i00 + k01 * i01 + k02 * i02 + k10 * i10 + k11 * i11 + k12 * i12 + k20 * i20 + k21 * i21 + k22 * i22 + bias_value);
 
                 if (act >= 0)
                 {
@@ -1494,6 +1500,7 @@ void convdw3x3s2_pack8_rvv(const float* input, const float* kernel, const float*
             const float k20 = kernel_base[6];
             const float k21 = kernel_base[7];
             const float k22 = kernel_base[8];
+            const float bias_value = bias_base ? bias_base[0] : .0f;
 
             for (; w < outw; ++w)
             {
@@ -1513,8 +1520,8 @@ void convdw3x3s2_pack8_rvv(const float* input, const float* kernel, const float*
                 const float i41 = row4[1];
                 const float i42 = row4[2];
 
-                float out1 = (k00 * i00 + k01 * i01 + k02 * i02 + k10 * i10 + k11 * i11 + k12 * i12 + k20 * i20 + k21 * i21 + k22 * i22 + bias_base[0]);
-                float out2 = (k00 * i20 + k01 * i21 + k02 * i22 + k10 * i30 + k11 * i31 + k12 * i32 + k20 * i40 + k21 * i41 + k22 * i42 + bias_base[0]);
+                float out1 = (k00 * i00 + k01 * i01 + k02 * i02 + k10 * i10 + k11 * i11 + k12 * i12 + k20 * i20 + k21 * i21 + k22 * i22 + bias_value);
+                float out2 = (k00 * i20 + k01 * i21 + k02 * i22 + k10 * i30 + k11 * i31 + k12 * i32 + k20 * i40 + k21 * i41 + k22 * i42 + bias_value);
 
                 if (act >= 0)
                 {
@@ -1631,6 +1638,7 @@ void convdw3x3s2_pack8_rvv(const float* input, const float* kernel, const float*
             const float k20 = kernel_base[6];
             const float k21 = kernel_base[7];
             const float k22 = kernel_base[8];
+            const float bias_value = bias_base ? bias_base[0] : .0f;
 
             for (; w < outw; ++w)
             {
@@ -1644,7 +1652,7 @@ void convdw3x3s2_pack8_rvv(const float* input, const float* kernel, const float*
                 const float i21 = row2[1];
                 const float i22 = row2[2];
 
-                float out1 = (k00 * i00 + k01 * i01 + k02 * i02 + k10 * i10 + k11 * i11 + k12 * i12 + k20 * i20 + k21 * i21 + k22 * i22 + bias_base[0]);
+                float out1 = (k00 * i00 + k01 * i01 + k02 * i02 + k10 * i10 + k11 * i11 + k12 * i12 + k20 * i20 + k21 * i21 + k22 * i22 + bias_value);
 
                 if (act >= 0)
                 {
@@ -1672,7 +1680,7 @@ int conv_dw_packn_kernel_run(const ir_node_t* ir_node, const ir_tensor_t* input_
     float* input = (float*)input_tensor->data;
     float* output = (float*)output_tensor->data;
     const float* kernel = filter_tensor->data;
-    const float* bias = bias_tensor->data;
+    const float* bias = bias_tensor ? bias_tensor->data : NULL;
 
     const int inb = input_tensor->dims[0];
     const int inc = input_tensor->dims[1];
