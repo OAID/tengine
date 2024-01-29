@@ -132,26 +132,10 @@ void im2col_tile8(float* input, float* col, int in_c, int in_w, int in_h, int k_
             }
         }
 
-        if (!col_end7)
+        if (col_end7)
         {
-            return;
-        }
-
-        float* cur_col = col + col_i * kernel_size;
-        for (int col_j = 0; col_j < kernel_size; ++col_j)
-        {
-            float* cur_input = input + col_j * in_xy + col_i;
-            for (int i = 0; i < 8; ++i)
-            {
-                if (i < col_end7)
-                {
-                    *cur_col++ = *cur_input++;
-                }
-                else
-                {
-                    *cur_col++ = .0f;
-                }
-            }
+            float* cur_col = col + col_i * kernel_size;
+            trans_col(input, cur_col, col_i, in_c, in_h, in_w, k_w, k_h, s_w, s_h, pad_w0, pad_h0, out_w, out_h, d_h, d_w);
         }
     }
     else if (d_w == 1 && d_h == 1 && k_w == 3 && k_h == 3 && s_w == s_h)

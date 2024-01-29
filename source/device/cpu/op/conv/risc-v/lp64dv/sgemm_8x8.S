@@ -10,6 +10,7 @@
 //a4 cur_output
 //a5 output_xy
 //a6 kernel_size
+//a7 saved n channels
 
 sgemm_8x8_rv64:
     addi    sp, sp, -8
@@ -18,7 +19,7 @@ sgemm_8x8_rv64:
     ld      ra, (sp)
 
     srli    t0, a6, 0x2
-    andi    t1, a6, 0x7
+    andi    t1, a6, 0x3
     slli    a5, a5, 0x2
 
     beqz    a2, none_biases
@@ -205,6 +206,23 @@ activation:
     vfmin.vv    v30, v30, v2
 
 save_result:
+    li          t0, 8
+    beq         a7, t0, save_result8
+    addi        t0, t0, -1
+    beq         a7, t0, save_result7
+    addi        t0, t0, -1
+    beq         a7, t0, save_result6
+    addi        t0, t0, -1
+    beq         a7, t0, save_result5
+    addi        t0, t0, -1
+    beq         a7, t0, save_result4
+    addi        t0, t0, -1
+    beq         a7, t0, save_result3
+    addi        t0, t0, -1
+    beq         a7, t0, save_result2
+    addi        t0, t0, -1
+    beq         a7, t0, save_result1
+save_result8:
     vse32.v     v16, (a4)
     add         a4, a4, a5
     vse32.v     v18, (a4)
@@ -220,6 +238,77 @@ save_result:
     vse32.v     v28, (a4)
     add         a4, a4, a5
     vse32.v     v30, (a4)
+    J           finish
+
+save_result7:
+    vse32.v     v16, (a4)
+    add         a4, a4, a5
+    vse32.v     v18, (a4)
+    add         a4, a4, a5
+    vse32.v     v20, (a4)
+    add         a4, a4, a5
+    vse32.v     v22, (a4)
+    add         a4, a4, a5
+    vse32.v     v24, (a4)
+    add         a4, a4, a5
+    vse32.v     v26, (a4)
+    add         a4, a4, a5
+    vse32.v     v28, (a4)
+    J           finish
+
+save_result6:
+    vse32.v     v16, (a4)
+    add         a4, a4, a5
+    vse32.v     v18, (a4)
+    add         a4, a4, a5
+    vse32.v     v20, (a4)
+    add         a4, a4, a5
+    vse32.v     v22, (a4)
+    add         a4, a4, a5
+    vse32.v     v24, (a4)
+    add         a4, a4, a5
+    vse32.v     v26, (a4)
+    J           finish
+
+save_result5:
+    vse32.v     v16, (a4)
+    add         a4, a4, a5
+    vse32.v     v18, (a4)
+    add         a4, a4, a5
+    vse32.v     v20, (a4)
+    add         a4, a4, a5
+    vse32.v     v22, (a4)
+    add         a4, a4, a5
+    vse32.v     v24, (a4)
+    J           finish
+
+save_result4:
+    vse32.v     v16, (a4)
+    add         a4, a4, a5
+    vse32.v     v18, (a4)
+    add         a4, a4, a5
+    vse32.v     v20, (a4)
+    add         a4, a4, a5
+    vse32.v     v22, (a4)
+    J           finish
+ 
+save_result3:
+    vse32.v     v16, (a4)
+    add         a4, a4, a5
+    vse32.v     v18, (a4)
+    add         a4, a4, a5
+    vse32.v     v20, (a4)
+    J           finish
+  
+save_result2:
+    vse32.v     v16, (a4)
+    add         a4, a4, a5
+    vse32.v     v18, (a4)
+    J           finish
+
+save_result1:
+    vse32.v     v16, (a4)
+    
 finish:
     addi        sp, sp, 8
     ret

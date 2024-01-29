@@ -9,7 +9,9 @@
 #include <string.h>
 
 #define PER_OUT_CHAN 8
-extern void sgemm_8x8_rv64(float* cur_col, float* cur_kernel, float* bias, int act, float* cur_output, int output_xy, int kernel_size);
+#define min(a, b)    ((a) < (b) ? (a) : (b))
+
+extern void sgemm_8x8_rv64(float* cur_col, float* cur_kernel, float* bias, int act, float* cur_output, int output_xy, int kernel_size, const int n);
 extern void im2col_tile8(float* input, float* col, int in_c, int in_w, int in_h, int k_w, int k_h, int s_w, int s_h, int d_w,
                          int d_h, int pad_w0, int pad_w1, int pad_h0, int pad_h1, int out_w, int out_h, int num_thread);
 
@@ -152,7 +154,7 @@ int conv_hcl_get_shared_mem_size_rv64_tile8(struct tensor* input_tensor, struct 
     int cstep = output_tensor->dims[2] * output_tensor->dims[3];
 
     cstep = (cstep + 7) / 8 * 8; //align to 8
-    int mem_size = input_tensor->elem_size * cstep * kernel_size + 128;
+    int mem_size = input_tensor->elem_size * cstep * kernel_size + 128 * sizeof(float);
     return mem_size;
 }
 
@@ -253,24 +255,26 @@ int conv_hcl_run_tile8(struct node* ir_node, struct tensor* input_tensor, struct
             im2col_tile8(cur_input, col, in_c, in_w, in_h, k_w, k_h, s_w, s_h, d_w, d_h, p_w0, p_w1, p_h0, p_h1, out_w, out_h, num_thread);
 
             float* output_base = output + n * output_image_size + g * output_size;
-            for (int out_chan_ = 0; out_chan_ < out_c_align8; out_chan_ += PER_OUT_CHAN)
+            //FIXME: out_chan_ 可能不是8对齐的
+            int out_chan_ = 0;
+            for (; out_chan_ < out_c_align8; out_chan_ += PER_OUT_CHAN)
             {
                 float* cur_kernel = interleaved_kernel + g * out_c_align8 * kernel_size + out_chan_ * kernel_size;
                 float* cur_bias = bias ? bias + g * out_c + out_chan_ : NULL;
                 float* cur_output = output_base + out_chan_ * out_xy;
+                const int n = min(8, out_c - out_chan_);
 
-                //FIXME: out_xy 可能不是8对齐的
                 int col_i = 0;
                 for (; col_i + 7 < out_xy; col_i += 8)
                 {
                     float* cur_col = col + col_i * kernel_size;
-                    sgemm_8x8_rv64(cur_col, cur_kernel, cur_bias, act, cur_output + col_i, out_xy, kernel_size);
+                    sgemm_8x8_rv64(cur_col, cur_kernel, cur_bias, act, cur_output + col_i, out_xy, kernel_size, n);
                 }
                 if (col_i < out_xy)
                 {
                     float result[64];
                     float* cur_col = (col + col_i * kernel_size);
-                    sgemm_8x8_rv64(cur_col, cur_kernel, cur_bias, act, result, 8, kernel_size);
+                    sgemm_8x8_rv64(cur_col, cur_kernel, cur_bias, act, result, 8, kernel_size, n);
 
                     int col_end3 = (out_xy & 7);
 
