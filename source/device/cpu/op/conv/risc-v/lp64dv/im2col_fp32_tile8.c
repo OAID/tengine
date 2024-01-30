@@ -1,6 +1,7 @@
 #include <stdbool.h>
-extern void im2col_fp32_1x1_tile8(const float* input, int input_xy, float* col, int input_chan, int step_size);
+extern void im2col_fp32_1x1_tile8(const float* input, const int input_xy, const int input_chan, float* col);
 extern void im2col_fp32_3x3_tile8(const float* input, int w, int h, int channel, float* cur_col, int stride);
+extern void im2col_fp32_3x3_tile8_c(const float* input, int w, int h, int channel, float* cur_col, int stride);
 
 static void trans_col(float* input, float* cur_col, int col_i, int in_c, int in_h, int in_w, int k_w, int k_h, int s_w, int s_h, int pad_w0, int pad_h0, int out_w, int out_h, int d_h, int d_w)
 {
@@ -124,7 +125,7 @@ void im2col_tile8(float* input, float* col, int in_c, int in_w, int in_h, int k_
             // is pad ?
             if (imy0 == imy7 && (is_pad0 || (imx_start >= 0 && imx_end < in_w && imy_start >= 0 && imy_end < in_h)))
             {
-                im2col_fp32_1x1_tile8(cur_input, in_xy, cur_col, in_c, 8);
+                im2col_fp32_1x1_tile8(cur_input, in_xy, in_c, cur_col);
             }
             else
             {
@@ -156,7 +157,7 @@ void im2col_tile8(float* input, float* col, int in_c, int in_w, int in_h, int k_
             if ((imy0 == imy7) && (is_pad0 || (imx_start >= 0 && imx_end < in_w - 8 && imy_start >= 0 && imy_end + 2 < in_h)))
             {
                 float* cur_input = input + imy_start * in_w + imx_start;
-                im2col_fp32_3x3_tile8(cur_input, in_w, in_h, in_c, cur_col, s_w);
+                im2col_fp32_3x3_tile8_c(cur_input, in_w, in_h, in_c, cur_col, s_w);
                 cur_col += 8 * kernel_size;
             }
             else

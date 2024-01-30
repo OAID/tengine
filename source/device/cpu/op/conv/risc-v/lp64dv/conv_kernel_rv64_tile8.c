@@ -11,7 +11,7 @@
 #define PER_OUT_CHAN 8
 #define min(a, b)    ((a) < (b) ? (a) : (b))
 
-extern void sgemm_8x8_rv64(float* cur_col, float* cur_kernel, float* bias, int act, float* cur_output, int output_xy, int kernel_size, const int n);
+extern void sgemm_8x8_rv64(const float* cur_col, const float* cur_kernel, const float* bias, const int act, float* cur_output, const int output_xy, const int kernel_size, const int n);
 extern void im2col_tile8(float* input, float* col, int in_c, int in_w, int in_h, int k_w, int k_h, int s_w, int s_h, int d_w,
                          int d_h, int pad_w0, int pad_w1, int pad_h0, int pad_h1, int out_w, int out_h, int num_thread);
 
