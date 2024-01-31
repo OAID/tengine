@@ -25,8 +25,8 @@ steps:
       - tar zxvf data_x86.tar.gz -C data
       - export QEMU_CMD='qemu-riscv64 -cpu rv64,v=true -E TG_DEBUG_TIME=1 -L /home/riscv/sysroot'
       - ../tests/test_rv64.sh
-      - lcov --gcov-tool /home/riscv/bin/riscv64-unknown-linux-gnu-gcov --capture --directory . --output-file coverage.info
-      - genhtml --branch-coverage -o result coverage.info && tar zcvf result.tar.gz result/
+      - lcov --gcov-tool /home/riscv/bin/riscv64-unknown-linux-gnu-gcov --capture --directory . --output-file $${DRONE_REPO_NAME}.info
+      - genhtml --branch-coverage -o ../codecov $${DRONE_REPO_NAME}.info 
   - name: scp files
     image: appleboy/drone-scp
     settings:
@@ -36,8 +36,9 @@ steps:
       password: 
         from_secret: download_host_passwd
       port: 38000
-      target: /home/lee/codecov/
-      source: build/result.tar.gz
+      target: /home/lee/codecov/${DRONE_REPO_NAME}/${DRONE_BUILD_NUMBER}/${DRONE_COMMIT_SHA}
+      strip_components: 1
+      source: codecov/*
   - name: notify
     image: ubuntu20.04:drone_script 
     environment:
@@ -47,6 +48,7 @@ steps:
         from_secret: gitea_api_token
     commands:
       - 'export DRONE_SCRIPT_DOWNLOAD_LINK=https://download.conleylee.com/scripts/drone_bot.py'
+      - 'export DRONE_CODECOV_LINK=https://codecov.conleylee.com/$${DRONE_REPO_NAME}/$${DRONE_BUILD_NUMBER}/$${DRONE_COMMIT_SHA}'
       - 'wget $${DRONE_SCRIPT_DOWNLOAD_LINK}'
       - pip3 install mattermostdriver
       - python3 `basename $${DRONE_SCRIPT_DOWNLOAD_LINK}` 
