@@ -9,11 +9,12 @@ steps:
   - name: build
     image: ubuntu20.04:qemu
     commands:
-      - PATH=$PATH:/home/riscv/bin cmake -DCMAKE_TOOLCHAIN_FILE=toolchains/rv64-c906.toolchain.cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_BUILD_TYPE=RELEASE -DTENGINE_BUILD_TESTS=ON -B build
+      - PATH=$PATH:/home/riscv/bin cmake -DCMAKE_TOOLCHAIN_FILE=toolchains/rv64-c906.toolchain.cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_BUILD_TYPE=RELEASE -DTENGINE_BUILD_TESTS=ON -DTENGINE_COVERAGE=ON -B build
       - PATH=$PATH:/home/riscv/bin cmake --build build -- -j`cat /proc/cpuinfo | grep 'processor' | wc -l` VERBOSE=1 
   - name: test
     image: ubuntu20.04:qemu
     commands:
+      - apt install lcov -y
       - cd build
       - wget -nv http://192.168.3.19:9999/tengine_model_zoo/ci_data/models.tar.gz
       - wget -nv http://192.168.3.19:9999/tengine_model_zoo/ci_data/images.tar.gz
@@ -24,6 +25,19 @@ steps:
       - tar zxvf data_x86.tar.gz -C data
       - export QEMU_CMD='qemu-riscv64 -cpu rv64,v=true -E TG_DEBUG_TIME=1 -L /home/riscv/sysroot'
       - ../tests/test_rv64.sh
+      - lcov --gcov-tool /home/riscv/bin/riscv64-unknown-linux-gnu-gcov --capture --directory . --output-file coverage.info
+      - genhtml --branch-coverage -o result coverage.info && tar zcvf result.tar.gz result/
+  - name: scp files
+    image: appleboy/drone-scp
+    settings:
+      host: conleylee.com
+      username:
+        from_secret: download_host_user
+      password: 
+        from_secret: download_host_passwd
+      port: 38000
+      target: /home/lee/codecov/
+      source: build/result.tar.gz
   - name: notify
     image: ubuntu20.04:drone_script 
     environment:
