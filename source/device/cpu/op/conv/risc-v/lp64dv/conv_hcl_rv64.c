@@ -12,10 +12,10 @@
 #include <string.h>
 #include <stdio.h>
 
-extern int conv_hcl_prerun_tile8(struct node* ir_node, struct tensor* input_tensor, struct tensor* filter_tensor, struct tensor* output_tensor, struct conv_priv_info* info, struct conv_param* param);
-extern int conv_hcl_run_tile8(struct node* ir_node, struct tensor* input_tensor, struct tensor* filter_tensor, struct tensor* bias_tensor, struct tensor* output_tensor, struct conv_priv_info* info, struct conv_param* param, int num_thread, int cpu_affinity);
-extern int conv_hcl_get_shared_mem_size_rv64_tile8(struct tensor* input_tensor, struct tensor* output_tensor, struct conv_param* param);
-extern int conv_hcl_postrun_tile8(struct node* ir_node, struct conv_priv_info* info);
+extern int conv_hcl_prerun_rv64(struct node* ir_node, struct tensor* input_tensor, struct tensor* filter_tensor, struct tensor* output_tensor, struct conv_priv_info* info, struct conv_param* param);
+extern int conv_hcl_run_rv64(struct node* ir_node, struct tensor* input_tensor, struct tensor* filter_tensor, struct tensor* bias_tensor, struct tensor* output_tensor, struct conv_priv_info* info, struct conv_param* param, int num_thread, int cpu_affinity);
+extern int conv_hcl_get_shared_mem_size_rv64(struct tensor* input_tensor, struct tensor* output_tensor, struct conv_param* param);
+extern int conv_hcl_postrun_rv64(struct node* ir_node, struct conv_priv_info* info);
 
 static int init_node(struct node_ops* ops, struct exec_node* exec_node, struct exec_graph* exec_graph)
 {
@@ -36,7 +36,7 @@ static int init_node(struct node_ops* ops, struct exec_node* exec_node, struct e
 
     if (exec_graph->mode == TENGINE_MODE_FP32)
     {
-        exec_node->shared_mem_size = conv_hcl_get_shared_mem_size_rv64_tile8(input_tensor, output_tensor, params);
+        exec_node->shared_mem_size = conv_hcl_get_shared_mem_size_rv64(input_tensor, output_tensor, params);
         exec_node->shared_pack4_mem_size = 0;
     }
     else
@@ -87,9 +87,9 @@ static int prerun(struct node_ops* node_ops, struct exec_node* exec_node, struct
             info->external_interleave_pack4_mem = 1;
         }
 
-        if (conv_hcl_prerun_tile8(ir_node, input_tensor, filter_tensor, output_tensor, info, param) < 0)
+        if (conv_hcl_prerun_rv64(ir_node, input_tensor, filter_tensor, output_tensor, info, param) < 0)
         {
-            TLOG_ERR("hcl conv tile8 prerun failed.\n");
+            TLOG_ERR("hcl conv prerun failed.\n");
             return -1;
         }
     }
@@ -121,10 +121,10 @@ static int run(struct node_ops* node_ops, struct exec_node* exec_node, struct ex
 
     if (exec_graph->mode == TENGINE_DT_FP32)
     {
-        int ret = conv_hcl_run_tile8(ir_node, input_tensor, filter_tensor, bias_tensor, output_tensor, info, params, num_thread, cpu_affinity);
+        int ret = conv_hcl_run_rv64(ir_node, input_tensor, filter_tensor, bias_tensor, output_tensor, info, params, num_thread, cpu_affinity);
         if (ret < 0)
         {
-            TLOG_ERR("conv_hcl_run_tile8 %s run failed: %d\n", ir_node->name, ret);
+            TLOG_ERR("conv_hcl_run %s run failed: %d\n", ir_node->name, ret);
             return ret;
         }
     }
@@ -146,7 +146,7 @@ static int postrun(struct node_ops* node_ops, struct exec_node* exec_node, struc
 {
     if (exec_graph->mode == TENGINE_MODE_FP32)
     {
-        return conv_hcl_postrun_tile8(exec_node->ir_node, exec_node->ops_priv);
+        return conv_hcl_postrun_rv64(exec_node->ir_node, exec_node->ops_priv);
     }
     else
     {
@@ -192,7 +192,7 @@ static struct node_ops hcl_node_ops = {
     .init_node = init_node,
     .release_node = release_node,
     .score = score,
-};
+    .is_ref_op = false};
 
 int register_conv_hcl_rv64_op()
 {
