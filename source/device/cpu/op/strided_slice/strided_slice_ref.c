@@ -159,7 +159,8 @@ static struct node_ops strided_slice_node_ops = {.prerun = NULL,
                                                  .postrun = NULL,
                                                  .init_node = init_node,
                                                  .release_node = release_node,
-                                                 .score = score};
+                                                 .score = score,
+                                                 .is_ref_op = true};
 
 int register_strided_slice_ref_op()
 {

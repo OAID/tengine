@@ -96,7 +96,8 @@ static struct node_ops hcl_node_ops = {.prerun = NULL,
                                        .postrun = NULL,
                                        .init_node = NULL,
                                        .release_node = NULL,
-                                       .score = score};
+                                       .score = score,
+                                       .is_ref_op = false};
 
 int register_prelu_hcl_arm_op()
 {
