@@ -27,18 +27,15 @@ steps:
       - ../tests/test_rv64.sh
       - lcov --gcov-tool /home/riscv/bin/riscv64-unknown-linux-gnu-gcov --capture --directory . --output-file $${DRONE_REPO_NAME}.info
       - genhtml --branch-coverage -o ../codecov $${DRONE_REPO_NAME}.info 
-  - name: scp files
-    image: appleboy/drone-scp
+  - name: upload_to_codecov 
+    image: robertstettner/drone-codecov:latest 
     settings:
-      host: conleylee.com
-      username:
-        from_secret: download_host_user
-      password: 
-        from_secret: download_host_passwd
-      port: 38000
-      target: /home/lee/codecov/${DRONE_REPO_NAME}/${DRONE_BUILD_NUMBER}/${DRONE_COMMIT_SHA}
-      strip_components: 1
-      source: codecov/*
+      token:
+        from_secret: CODECOV_TOKEN
+      files: 
+        - build/${DRONE_REPO_NAME}.info
+      flags:
+        - model_test
   - name: notify
     image: ubuntu20.04:drone_script 
     environment:
