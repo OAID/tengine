@@ -7,13 +7,9 @@ English | [简体中文](./README.md)
 
 # Tengine
 
-[![GitHub license](http://OAID.github.io/pics/apache_2.0.svg)](./LICENSE)
-[![Build Status](https://img.shields.io/github/workflow/status/OAID/Tengine/Tengine-Lite-Actions/tengine-lite)](https://github.com/OAID/Tengine/actions?query=workflow%3ATengine-Lite-Actions)
-[![Build Status](https://img.shields.io/github/workflow/status/OAID/Tengine-Convert-Tools/Tengine-Convert-Tools-Actions?label=tools%20build)](https://github.com/OAID/Tengine-Convert-Tools/actions?query=workflow%3ATengine-Convert-Tools-Actions)
-[![Test Status](https://img.shields.io/travis/OAID/Tengine/tengine-lite?label=test)](https://travis-ci.org/OAID/Tengine)
-[![codecov](https://codecov.io/gh/OAID/Tengine/branch/tengine-lite/graph/badge.svg?token=kz9NcQPRrk)](https://codecov.io/gh/OAID/Tengine)
-[![Language grade: C/C++](https://img.shields.io/lgtm/grade/cpp/g/OAID/Tengine.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/OAID/Tengine/context:cpp)
-
+[![License](https://img.shields.io/badge/license-Apache_2.0-blue)](./LICENSE)
+[![Build Status](https://drone.conleylee.com/api/badges/conley/Tengine/status.svg?ref=refs/heads/master)](https://drone.conleylee.com/conley/Tengine)
+[![codecov](https://codecov.io/gh/ComingToy/Tengine/graph/badge.svg?token=KVOX0LW1NJ)](https://codecov.io/gh/ComingToy/Tengine)
 
 ## Introduction
 
