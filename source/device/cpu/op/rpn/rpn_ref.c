@@ -363,7 +363,8 @@ static struct node_ops rpn_node_ops = {.prerun = prerun,
                                        .postrun = NULL,
                                        .init_node = init_node,
                                        .release_node = release_node,
-                                       .score = score};
+                                       .score = score,
+                                       .is_ref_op = true};
 
 int register_rpn_ref_op()
 {

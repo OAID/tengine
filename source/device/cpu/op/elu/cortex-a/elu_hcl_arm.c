@@ -87,7 +87,8 @@ static struct node_ops hcl_node_ops = {.prerun = prerun,
                                        .postrun = NULL,
                                        .init_node = init_node,
                                        .release_node = release_node,
-                                       .score = score};
+                                       .score = score,
+                                       .is_ref_op = false};
 
 int register_elu_hcl_arm_op()
 {

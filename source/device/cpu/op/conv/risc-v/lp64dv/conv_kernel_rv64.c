@@ -12,8 +12,8 @@
 #define min(a, b)    ((a) < (b) ? (a) : (b))
 
 extern void sgemm_8x8_rv64(const float* cur_col, const float* cur_kernel, const float* bias, const int act, float* cur_output, const int output_xy, const int kernel_size, const int n);
-extern void im2col_tile8(float* input, float* col, int in_c, int in_w, int in_h, int k_w, int k_h, int s_w, int s_h, int d_w,
-                         int d_h, int pad_w0, int pad_w1, int pad_h0, int pad_h1, int out_w, int out_h, int num_thread);
+extern void im2col(float* input, float* col, int in_c, int in_w, int in_h, int k_w, int k_h, int s_w, int s_h, int d_w,
+                   int d_h, int pad_w0, int pad_w1, int pad_h0, int pad_h1, int out_w, int out_h, int num_thread);
 
 static void interleave_kernel(float* kernel, float* kernel_interleaved, int kernel_chan, int kernel_size)
 {
@@ -148,7 +148,7 @@ static void interleave(struct tensor* filter, struct conv_priv_info* priv_info, 
     }
 }
 
-int conv_hcl_get_shared_mem_size_rv64_tile8(struct tensor* input_tensor, struct tensor* output_tensor, struct conv_param* param)
+int conv_hcl_get_shared_mem_size_rv64(struct tensor* input_tensor, struct tensor* output_tensor, struct conv_param* param)
 {
     int kernel_size = param->kernel_h * param->kernel_w * param->input_channel / param->group;
     int cstep = output_tensor->dims[2] * output_tensor->dims[3];
@@ -158,12 +158,12 @@ int conv_hcl_get_shared_mem_size_rv64_tile8(struct tensor* input_tensor, struct 
     return mem_size;
 }
 
-int conv_hcl_prerun_tile8(struct node* ir_node, struct tensor* input_tensor, struct tensor* filter_tensor, struct tensor* output_tensor, struct conv_priv_info* info, struct conv_param* param)
+int conv_hcl_prerun_rv64(struct node* ir_node, struct tensor* input_tensor, struct tensor* filter_tensor, struct tensor* output_tensor, struct conv_priv_info* info, struct conv_param* param)
 {
     // alloc im2col buffer = kernel_size * out_xy
     if (!info->external_im2col_mem)
     {
-        int mem_size = conv_hcl_get_shared_mem_size_rv64_tile8(input_tensor, output_tensor, param);
+        int mem_size = conv_hcl_get_shared_mem_size_rv64(input_tensor, output_tensor, param);
         info->im2col_buffer = sys_malloc(mem_size);
         info->im2col_buffer_size = mem_size;
     }
@@ -184,7 +184,7 @@ int conv_hcl_prerun_tile8(struct node* ir_node, struct tensor* input_tensor, str
     return 0;
 }
 
-int conv_hcl_postrun_tile8(struct node* ir_node, struct conv_priv_info* info)
+int conv_hcl_postrun_rv64(struct node* ir_node, struct conv_priv_info* info)
 {
     if (!info->external_interleave_mem && info->interleave_buffer)
     {
@@ -201,7 +201,7 @@ int conv_hcl_postrun_tile8(struct node* ir_node, struct conv_priv_info* info)
     return 0;
 }
 
-int conv_hcl_run_tile8(struct node* ir_node, struct tensor* input_tensor, struct tensor* filter_tensor, struct tensor* bias_tensor, struct tensor* output_tensor, struct conv_priv_info* info, struct conv_param* param, int num_thread, int cpu_affinity)
+int conv_hcl_run_rv64(struct node* ir_node, struct tensor* input_tensor, struct tensor* filter_tensor, struct tensor* bias_tensor, struct tensor* output_tensor, struct conv_priv_info* info, struct conv_param* param, int num_thread, int cpu_affinity)
 {
     int group = param->group;
     int batch = input_tensor->dims[0];
@@ -252,7 +252,7 @@ int conv_hcl_run_tile8(struct node* ir_node, struct tensor* input_tensor, struct
         {
             float* cur_input = input + n * input_image_size + g * input_size;
             //output shape: [batch, group, output_xy/8, ksize, 8]
-            im2col_tile8(cur_input, col, in_c, in_w, in_h, k_w, k_h, s_w, s_h, d_w, d_h, p_w0, p_w1, p_h0, p_h1, out_w, out_h, num_thread);
+            im2col(cur_input, col, in_c, in_w, in_h, k_w, k_h, s_w, s_h, d_w, d_h, p_w0, p_w1, p_h0, p_h1, out_w, out_h, num_thread);
 
             float* output_base = output + n * output_image_size + g * output_size;
             //FIXME: out_chan_ 可能不是8对齐的
