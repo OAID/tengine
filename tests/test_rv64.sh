@@ -28,6 +28,7 @@ test_models=(
 "${QEMU_CMD} ./tests/test_model_yolov4"
 "${QEMU_CMD} ./tests/test_model_yolov4_tiny"
 "${QEMU_CMD} ./tests/test_model_yolov5s"
+"${QEMU_CMD} ./tests/op/test_op_absval"
 )
 
 for (( i = 0 ; i < ${#test_models[@]} ; i++ ))
