@@ -18,6 +18,7 @@ function(tengine_op_test name)
 
 endfunction()
 tengine_op_test(test_op_absval)
+tengine_op_test(test_op_add_n)
 
 if (TENGINE_ENABLE_OPENDLA)
     function (tengine_opendla_op_test name file)
