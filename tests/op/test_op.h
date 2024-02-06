@@ -27,14 +27,33 @@ struct data_buffer
 {
     void* data;
     size_t size;
+    int dims[8];
+    int dim_num;
 };
 
-struct data_buffer* create_data_buffer(tensor_t tensor)
+struct data_buffer* create_data_buffer_from_tensor(tensor_t tensor)
 {
     struct data_buffer* buf = (struct data_buffer*)malloc(sizeof(struct data_buffer));
     buf->size = get_tensor_buffer_size(tensor);
     buf->data = malloc(buf->size);
     memcpy(buf->data, get_tensor_buffer(tensor), buf->size);
+    buf->dim_num = get_tensor_shape(tensor, buf->dims, 8);
+    return buf;
+}
+
+struct data_buffer* create_data_buffer_fp32(const int* dims, const int dim_num)
+{
+    struct data_buffer* buf = (struct data_buffer*)malloc(sizeof(struct data_buffer));
+    buf->size = (int)(dim_num > 0);
+    buf->dim_num = dim_num;
+
+    for (int i = 0; i < dim_num; ++i)
+    {
+        buf->size *= dims[i];
+        buf->dims[i] = dims[i];
+    }
+    buf->size *= sizeof(float);
+    buf->data = malloc(buf->size);
     return buf;
 }
 
@@ -77,14 +96,14 @@ float random_float(float a, float b)
 void fill_random_tensor_fp32(tensor_t v)
 {
     const int n = get_tensor_buffer_size(v);
-    float* data = (float*)malloc(n);
+    float* data = get_tensor_buffer(v);
     for (int i = 0; i < n / sizeof(float); ++i)
     {
         data[i] = random_float(-1.2, 1.2);
     }
-    set_tensor_buffer(v, data, n);
 }
 
+typedef int (*node_setup_hook_fn)(graph_t graph, const char* test_node_name, const char* op, const char* input_name, int data_type, int input_num, int output_num);
 typedef int (*common_test)(graph_t, const char* input_name, const char* node_name, int data_type, int layout, int n, int c, int h, int w);
 
 #if 0
@@ -697,34 +716,13 @@ void test_graph_release(graph_t graph)
     release_tengine();
 }
 
-graph_t create_common_test_graph(const char* op, const char* test_node_name, int data_type, int input_num, int output_num, int layout, int n, int c, int h, int w, int dims_num)
+static int craete_common_test_node(graph_t graph, const char* test_node_name, const char* op, const char* input_name, int data_type, int input_num, int output_num)
 {
-    graph_t graph = create_graph(NULL, NULL, NULL);
-    if (NULL == graph)
-    {
-        fprintf(stderr, "get graph failed.\n");
-        return NULL;
-    }
-
-    if (set_graph_layout(graph, layout) < 0)
-    {
-        fprintf(stderr, "set layout failed.\n");
-        return NULL;
-    }
-
-    const char* input_name = "input_node";
-    if (create_input_node_with_multi_inputs(graph, input_name, data_type, input_num, layout, n, c, h, w, dims_num) < 0)
-    {
-        fprintf(stderr, "create input node failed.\n");
-        return NULL;
-    }
-
-    // setup test node
     node_t test_node = create_graph_node(graph, test_node_name, op);
     if (NULL == test_node)
     {
         fprintf(stderr, "create test node failed.\n");
-        return NULL;
+        return -1;
     }
 
     node_t input_node = get_graph_node(graph, input_name);
@@ -742,23 +740,92 @@ graph_t create_common_test_graph(const char* op, const char* test_node_name, int
         if (!output_tensor)
         {
             fprintf(stderr, "create graph output tensor failed.\n");
-            return NULL;
+            return -1;
         }
 
         set_node_output_tensor(test_node, i, output_tensor, TENSOR_TYPE_VAR);
     }
+    return 0;
+}
+
+graph_t create_common_test_graph(const char* op, const char* test_node_name, const void* params, const size_t param_size, vector_t* inputs, int output_num, int data_type, int layout)
+{
+    graph_t graph = create_graph(NULL, NULL, NULL);
+    if (NULL == graph)
+    {
+        fprintf(stderr, "get graph failed.\n");
+        return NULL;
+    }
+
+    if (set_graph_layout(graph, layout) < 0)
+    {
+        fprintf(stderr, "set layout failed.\n");
+        return NULL;
+    }
+
+    const char* input_name = "input_node";
+    node_t input_node = create_graph_node(graph, input_name, OP_INPUT_NAME);
+    node_t test_node = create_graph_node(graph, test_node_name, op);
+    if (!input_node || !test_node)
+    {
+        fprintf(stderr, "create input node failed.\n");
+        return NULL;
+    }
+
+    // setup input tensor
+    char tensor_name[512];
+    for (int i = 0; i < get_vector_num(inputs); ++i)
+    {
+        struct data_buffer* input = *(struct data_buffer**)get_vector_data(inputs, i);
+        snprintf(tensor_name, sizeof(tensor_name), "%s_%d", input_name, i);
+        tensor_t tensor = create_graph_tensor(graph, tensor_name, data_type);
+        if (!tensor) return NULL;
+
+        set_tensor_shape(tensor, input->dims, input->dim_num);
+        set_tensor_buffer(tensor, input->data, input->size);
+
+        if (set_node_output_tensor(input_node, i, tensor, TENSOR_TYPE_VAR))
+        {
+            return NULL;
+        }
+
+        if (set_node_input_tensor(test_node, i, tensor))
+        {
+            return NULL;
+        }
+    }
+
+    // setup output tensor
+    for (int i = 0; i < output_num; ++i)
+    {
+        snprintf(tensor_name, sizeof(tensor_name), "%s_%d", test_node_name, i);
+        tensor_t output_tensor = create_graph_tensor(graph, tensor_name, data_type);
+        if (set_node_output_tensor(test_node, i, output_tensor, TENSOR_TYPE_VAR))
+        {
+            return NULL;
+        }
+    }
+
+    // setup test node param
+    if (params)
+    {
+        struct node* ir_node = (struct node*)test_node;
+        memcpy(ir_node->op.param_mem, params, param_size);
+    }
+
+    // setup test node end.
 
     /* set input/output node */
-    const char* inputs[] = {input_name};
-    const char* outputs[] = {test_node_name};
+    const char* input_nodes[] = {input_name};
+    const char* output_nodes[] = {test_node_name};
 
-    if (set_graph_input_node(graph, inputs, sizeof(inputs) / sizeof(char*)) < 0)
+    if (set_graph_input_node(graph, input_nodes, sizeof(input_nodes) / sizeof(char*)) < 0)
     {
         fprintf(stderr, "set inputs failed.\n");
         return NULL;
     }
 
-    if (set_graph_output_node(graph, outputs, sizeof(outputs) / sizeof(char*)) < 0)
+    if (set_graph_output_node(graph, output_nodes, sizeof(output_nodes) / sizeof(char*)) < 0)
     {
         fprintf(stderr, "set outputs failed.\n");
         return NULL;
@@ -767,33 +834,9 @@ graph_t create_common_test_graph(const char* op, const char* test_node_name, int
     return graph;
 }
 
-int create_common_op_test_case(const char* op, int input_num, int output_num, int data_type, int layout, const int* dims, int dims_num, const float eps)
+//inputs: vector<struct data_buffer>
+int create_common_op_test_case(const char* op, const void* params, const size_t param_size, vector_t* inputs, int output_num, int data_type, int layout, const float eps)
 {
-    int n = 1, c = 1, h = 1, w = 1;
-    switch (dims_num)
-    {
-    case 0:
-        return -1;
-    case 1: w = 1; break;
-    case 2:
-        h = dims[0];
-        w = dims[1];
-        break;
-    case 3:
-        c = dims[0];
-        h = dims[1];
-        w = dims[2];
-        break;
-    case 4:
-        n = dims[0];
-        c = dims[1];
-        h = dims[2];
-        w = dims[3];
-        break;
-    default:
-        return -1;
-    }
-
     int ret = test_graph_init();
     if (ret)
     {
@@ -801,34 +844,37 @@ int create_common_op_test_case(const char* op, int input_num, int output_num, in
         return ret;
     }
 
-    graph_t graph = create_common_test_graph(op, "test_node", data_type, input_num, output_num, layout, n, c, h, w, dims_num);
+    graph_t graph_ref = create_common_test_graph(op, "test_node", params, param_size, inputs, output_num, data_type, layout);
+    graph_t graph = create_common_test_graph(op, "test_node", params, param_size, inputs, output_num, data_type, layout);
+
     vector_t* outputs_ref = create_vector(sizeof(struct data_buffer*), free_data_buffer_in_vector);
     vector_t* outputs = create_vector(sizeof(struct data_buffer*), free_data_buffer_in_vector);
 
-    for (int i = 0; i < get_graph_input_node_number(graph); ++i)
+    for (int i = 0; i < get_graph_input_node_number(graph_ref); ++i)
     {
-        node_t input_node = get_graph_input_node(graph, i);
+        node_t input_node = get_graph_input_node(graph_ref, i);
         for (int t = 0; t < get_node_output_number(input_node); ++t)
         {
-            tensor_t input_tensor = get_graph_input_tensor(graph, i, t);
+            tensor_t input_tensor = get_graph_input_tensor(graph_ref, i, t);
             fill_random_tensor_fp32(input_tensor);
         }
     }
 
     setenv("TG_DEBUG_REF", "1", 1);
-    ret = test_graph_run(graph);
-    if (ret)
+
+    if ((ret = test_graph_run(graph_ref)) < 0)
     {
         fprintf(stderr, "run graph failed: %d\n", ret);
         goto out;
     }
-    for (int i = 0; i < get_graph_output_node_number(graph); ++i)
+
+    for (int i = 0; i < get_graph_output_node_number(graph_ref); ++i)
     {
-        node_t output_node = get_graph_output_node(graph, i);
+        node_t output_node = get_graph_output_node(graph_ref, i);
         for (int t = 0; t < get_node_output_number(output_node); ++t)
         {
-            tensor_t output_tensor = get_graph_output_tensor(graph, i, t);
-            struct data_buffer* data = create_data_buffer(output_tensor);
+            tensor_t output_tensor = get_graph_output_tensor(graph_ref, i, t);
+            struct data_buffer* data = create_data_buffer_from_tensor(output_tensor);
             push_vector_data(outputs_ref, &data);
         }
     }
@@ -847,15 +893,15 @@ int create_common_op_test_case(const char* op, int input_num, int output_num, in
         for (int t = 0; t < get_node_output_number(output_node); ++t)
         {
             tensor_t output_tensor = get_graph_output_tensor(graph, i, t);
-            struct data_buffer* data = create_data_buffer(output_tensor);
+            struct data_buffer* data = create_data_buffer_from_tensor(output_tensor);
             push_vector_data(outputs, &data);
         }
     }
 
     for (int i = 0; i < get_vector_num(outputs_ref); ++i)
     {
-        struct data_buffer* p1 = get_vector_data(outputs_ref, i);
-        struct data_buffer* p2 = get_vector_data(outputs, i);
+        struct data_buffer* p1 = *(struct data_buffer**)get_vector_data(outputs_ref, i);
+        struct data_buffer* p2 = *(struct data_buffer**)get_vector_data(outputs, i);
         if (!is_match_buffer_fp32(p1, p2, eps))
         {
             fprintf(stderr, "%dth output is mismatch\n", i);
@@ -866,6 +912,7 @@ int create_common_op_test_case(const char* op, int input_num, int output_num, in
 
 out:
     test_graph_release(graph);
+    test_graph_release(graph_ref);
     release_vector(outputs);
     release_vector(outputs_ref);
     return ret;
@@ -1051,53 +1098,6 @@ graph_t create_torch_test_graph(const char* test_node_name, int data_type, int l
     }
 
     graph_t graph = create_graph(torch_context, NULL, NULL);
-    if (NULL == graph)
-    {
-        fprintf(stderr, "get graph failed.\n");
-        return NULL;
-    }
-
-    if (set_graph_layout(graph, layout) < 0)
-    {
-        fprintf(stderr, "set layout failed.\n");
-        return NULL;
-    }
-
-    const char* input_name = "input_node";
-    if (create_input_node(graph, input_name, data_type, layout, n, c, h, w, dims_num) < 0)
-    {
-        fprintf(stderr, "create input node failed.\n");
-        return NULL;
-    }
-
-    if (test_func(graph, input_name, test_node_name, data_type, layout, n, c, h, w) < 0)
-    {
-        fprintf(stderr, "create test node failed.\n");
-        return NULL;
-    }
-
-    /* set input/output node */
-    const char* inputs[] = {input_name};
-    const char* outputs[] = {test_node_name};
-
-    if (set_graph_input_node(graph, inputs, sizeof(inputs) / sizeof(char*)) < 0)
-    {
-        fprintf(stderr, "set inputs failed.\n");
-        return NULL;
-    }
-
-    if (set_graph_output_node(graph, outputs, sizeof(outputs) / sizeof(char*)) < 0)
-    {
-        fprintf(stderr, "set outputs failed.\n");
-        return NULL;
-    }
-
-    return graph;
-}
-
-graph_t create_cpu_test_graph(const char* test_node_name, int data_type, int layout, int n, int c, int h, int w, common_test test_func, int dims_num)
-{
-    graph_t graph = create_graph(NULL, NULL, NULL);
     if (NULL == graph)
     {
         fprintf(stderr, "get graph failed.\n");

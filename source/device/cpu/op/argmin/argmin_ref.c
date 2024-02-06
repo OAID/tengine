@@ -175,9 +175,6 @@ static int run(struct node_ops* node_ops, struct exec_node* exec_node, struct ex
 
     struct argmin_op_param* argmin_op_param = (struct argmin_op_param*)exec_node->ops_priv;
 
-    TLOG_ERR("output_tensor->elem_num:%d\n", output_tensor->elem_num);
-    TLOG_ERR("output_tensor->elem_size:%d\n", output_tensor->elem_size);
-
     if (input_tensor->data_type == TENGINE_DT_FP32)
         ref_argmin_fp32((float*)in_data, (int*)out_data, argmin_op_param);
     else if (input_tensor->data_type == TENGINE_DT_UINT8)

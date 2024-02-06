@@ -7,15 +7,19 @@
 #include <stdlib.h>
 #include "util/vector.h"
 
-#define define_test_case(__func, __layout, ...)                                                     \
-    static int __func()                                                                             \
-    {                                                                                               \
-        const char* test_node_name = "absval";                                                      \
-        int data_type = TENGINE_DT_FP32;                                                            \
-        int layout = __layout;                                                                      \
-        int dims[] = {__VA_ARGS__};                                                                 \
-        int dims_num = sizeof(dims) / sizeof(dims[0]);                                              \
-        return create_common_op_test_case(OP_ABSVAL_NAME, 1, 1, data_type, layout, dims, 4, 0.001); \
+#define define_test_case(__func, __layout, ...)                                                             \
+    static int __func()                                                                                     \
+    {                                                                                                       \
+        int data_type = TENGINE_DT_FP32;                                                                    \
+        int layout = __layout;                                                                              \
+        int dims[] = {__VA_ARGS__};                                                                         \
+        int dims_num = sizeof(dims) / sizeof(dims[0]);                                                      \
+        vector_t* inputs = create_vector(sizeof(struct data_buffer), free_data_buffer_in_vector);           \
+        struct data_buffer* input = create_data_buffer_fp32(dims, sizeof(dims) / sizeof(int));              \
+        push_vector_data(inputs, &input);                                                                   \
+        int ret = create_common_op_test_case(OP_ABSVAL_NAME, NULL, 0, inputs, 1, data_type, layout, 0.001); \
+        release_vector(inputs);                                                                             \
+        return ret;                                                                                         \
     }
 
 define_test_case(absval_op_test_case_0, TENGINE_LAYOUT_NCHW, 1, 3, 64, 128);

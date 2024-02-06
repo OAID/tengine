@@ -7,18 +7,23 @@
 #include <stdlib.h>
 #include "util/vector.h"
 
-#define define_common_test_case(__op_name, __case_name, __layout, ...)                                    \
-    static int __case_name()                                                                              \
-    {                                                                                                     \
-        int data_type = TENGINE_DT_FP32;                                                                  \
-        int layout = __layout;                                                                            \
-        int dims[] = {__VA_ARGS__};                                                                       \
-        int dims_num = sizeof(dims) / sizeof(dims[0]);                                                    \
-        for (int i = 0; i < 64; ++i)                                                                      \
-        {                                                                                                 \
-            int ret = create_common_op_test_case(__op_name, i + 1, 1, data_type, layout, dims, 4, 0.001); \
-            if (ret) return ret;                                                                          \
-        }                                                                                                 \
+#define define_common_test_case(__op_name, __case_name, __layout, ...)                                     \
+    static int __case_name()                                                                               \
+    {                                                                                                      \
+        int data_type = TENGINE_DT_FP32;                                                                   \
+        int layout = __layout;                                                                             \
+        int dims[] = {__VA_ARGS__};                                                                        \
+        int dims_num = sizeof(dims) / sizeof(dims[0]);                                                     \
+        vector_t* inputs = create_vector(sizeof(struct data_buffer*), free_data_buffer_in_vector);         \
+        for (int i = 0; i < 64; ++i)                                                                       \
+        {                                                                                                  \
+            struct data_buffer* input = create_data_buffer_fp32(dims, sizeof(dims) / sizeof(int));         \
+            push_vector_data(inputs, &input);                                                              \
+            int ret = create_common_op_test_case(__op_name, NULL, 0, inputs, 1, data_type, layout, 0.001); \
+            if (ret) return ret;                                                                           \
+        }                                                                                                  \
+        release_vector(inputs);                                                                            \
+        return 0;                                                                                          \
     }
 
 #define define_test_case(__case_name, __layout, ...) define_common_test_case(OP_ADD_N_NAME, __case_name, __layout, __VA_ARGS__)
