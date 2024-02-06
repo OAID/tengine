@@ -1,10 +1,13 @@
+#include "api/c_api.h"
+#include "graph/graph.h"
+#include "graph/node.h"
 #include "test_op.h"
 #include "tengine/c_api.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include "util/vector.h"
 
-int create_test_absval_node(graph_t graph, const char* input_name, const char* node_name, int data_type, int layout, int n, int c, int h, int w)
+int create_test_absval_node(graph_t graph, const char* input_node_name, const char* node_name, int data_type, int layout, int n, int c, int h, int w)
 {
     node_t test_node = create_graph_node(graph, node_name, OP_ABSVAL_NAME);
     if (NULL == test_node)
@@ -13,8 +16,12 @@ int create_test_absval_node(graph_t graph, const char* input_name, const char* n
         return -1;
     }
 
-    tensor_t input_tensor = get_graph_tensor(graph, input_name);
-    set_node_input_tensor(test_node, 0, input_tensor);
+    node_t input_node = get_graph_node(graph, input_node_name);
+    for (int i = 0; i < get_node_output_number(input_node); ++i)
+    {
+        tensor_t input_tensor = get_node_output_tensor(input_node, i);
+        set_node_input_tensor(test_node, i, input_tensor);
+    }
 
     tensor_t output_tensor = create_graph_tensor(graph, node_name, data_type);
     if (!output_tensor)
@@ -27,15 +34,15 @@ int create_test_absval_node(graph_t graph, const char* input_name, const char* n
     return 0;
 }
 
-#define define_absval_test_case(__func, __layout, ...)                                                           \
-    int __func()                                                                                                 \
-    {                                                                                                            \
-        const char* test_node_name = "absval";                                                                   \
-        int data_type = TENGINE_DT_FP32;                                                                         \
-        int layout = __layout;                                                                                   \
-        int dims[] = {__VA_ARGS__};                                                                              \
-        int dims_num = sizeof(dims) / sizeof(dims[0]);                                                           \
-        return create_common_op_test_case("absval", data_type, layout, dims, 4, create_test_absval_node, 0.001); \
+#define define_absval_test_case(__func, __layout, ...)                                                              \
+    int __func()                                                                                                    \
+    {                                                                                                               \
+        const char* test_node_name = "absval";                                                                      \
+        int data_type = TENGINE_DT_FP32;                                                                            \
+        int layout = __layout;                                                                                      \
+        int dims[] = {__VA_ARGS__};                                                                                 \
+        int dims_num = sizeof(dims) / sizeof(dims[0]);                                                              \
+        return create_common_op_test_case("absval", data_type, 1, layout, dims, 4, create_test_absval_node, 0.001); \
     }
 
 define_absval_test_case(absval_op_test_case_0, TENGINE_LAYOUT_NCHW, 1, 3, 64, 128);

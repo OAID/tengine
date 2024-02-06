@@ -319,7 +319,7 @@ int create_node(graph_t graph, const char* node_name, int n, int c, int h, int w
     return 0;
 }
 
-int create_input_node(graph_t graph, const char* node_name, int data_type, int layout, int n, int c, int h, int w, int dims_count)
+int create_input_node_with_multi_inputs(graph_t graph, const char* node_name, int data_type, int input_num, int layout, int n, int c, int h, int w, int dims_count)
 {
     if (0 == n) dims_count = 3;
     if (0 == c) dims_count = 2;
@@ -330,104 +330,108 @@ int create_input_node(graph_t graph, const char* node_name, int data_type, int l
         return -1;
     }
 
-    node_t node = create_graph_node(graph, node_name, "InputOp");
+    node_t node = create_graph_node(graph, node_name, OP_INPUT_NAME);
     if (NULL == node)
     {
         fprintf(stderr, "Create %d dims node(%s) failed. ", dims_count, node_name);
         return -1;
     }
 
-    tensor_t tensor = create_graph_tensor(graph, node_name, data_type);
-    if (NULL == tensor)
+    for (int i = 0; i < input_num; ++i)
     {
-        release_graph_node(node);
+        char tensor_name[512];
+        snprintf(tensor_name, sizeof(tensor_name), "%s_%d", node_name, i);
+        tensor_t tensor = create_graph_tensor(graph, tensor_name, data_type);
 
-        fprintf(stderr, "Create %d dims tensor for node(%s) failed. ", dims_count, node_name);
-
-        return -1;
-    }
-
-    int ret = set_node_output_tensor(node, 0, tensor, TENSOR_TYPE_INPUT);
-    if (0 != ret)
-    {
-        release_graph_tensor(tensor);
-        release_graph_node(node);
-
-        fprintf(stderr, "Set %d dims output tensor for node(%s) failed. ", dims_count, node_name);
-
-        return -1;
-    }
-
-    switch (dims_count)
-    {
-    case 1:
-    {
-        int dims_array[1] = {w};
-        set_tensor_shape(tensor, dims_array, dims_count);
-        break;
-    }
-    case 2:
-    {
-        int dims_array[2] = {h, w};
-        set_tensor_shape(tensor, dims_array, dims_count);
-        break;
-    }
-    case 3:
-    {
-        if (TENGINE_LAYOUT_NCHW == layout)
+        if (NULL == tensor)
         {
-            int dims_array[3] = {c, h, w};
+            release_graph_node(node);
+            fprintf(stderr, "Create %d dims tensor for node(%s) failed. ", dims_count, node_name);
+            return -1;
+        }
+
+        int ret = set_node_output_tensor(node, i, tensor, TENSOR_TYPE_INPUT);
+        if (0 != ret)
+        {
+            release_graph_tensor(tensor);
+            release_graph_node(node);
+            fprintf(stderr, "Set %d dims output tensor for node(%s) failed. ", dims_count, node_name);
+            return -1;
+        }
+
+        switch (dims_count)
+        {
+        case 1:
+        {
+            int dims_array[1] = {w};
             set_tensor_shape(tensor, dims_array, dims_count);
             break;
         }
-
-        if (TENGINE_LAYOUT_NHWC == layout)
+        case 2:
         {
-            int dims_array[3] = {h, w, c};
+            int dims_array[2] = {h, w};
             set_tensor_shape(tensor, dims_array, dims_count);
             break;
+        }
+        case 3:
+        {
+            if (TENGINE_LAYOUT_NCHW == layout)
+            {
+                int dims_array[3] = {c, h, w};
+                set_tensor_shape(tensor, dims_array, dims_count);
+                break;
+            }
+
+            if (TENGINE_LAYOUT_NHWC == layout)
+            {
+                int dims_array[3] = {h, w, c};
+                set_tensor_shape(tensor, dims_array, dims_count);
+                break;
+            }
+        }
+        case 4:
+        {
+            if (TENGINE_LAYOUT_NCHW == layout)
+            {
+                int dims_array[4] = {n, c, h, w};
+                set_tensor_shape(tensor, dims_array, dims_count);
+                break;
+            }
+
+            if (TENGINE_LAYOUT_NHWC == layout)
+            {
+                int dims_array[4] = {n, h, w, c};
+                set_tensor_shape(tensor, dims_array, dims_count);
+                break;
+            }
+        }
+        case 5:
+        {
+            if (TENGINE_LAYOUT_NCHW == layout)
+            {
+                int dims_array[5] = {1, n, c, h, w};
+                set_tensor_shape(tensor, dims_array, dims_count);
+                break;
+            }
+
+            if (TENGINE_LAYOUT_NHWC == layout)
+            {
+                int dims_array[5] = {1, n, h, w, c};
+                set_tensor_shape(tensor, dims_array, dims_count);
+                break;
+            }
+        }
+        default:
+            fprintf(stderr, "Cannot support %d dims tensor.\n", dims_count);
         }
     }
-    case 4:
-    {
-        if (TENGINE_LAYOUT_NCHW == layout)
-        {
-            int dims_array[4] = {n, c, h, w};
-            set_tensor_shape(tensor, dims_array, dims_count);
-            break;
-        }
-
-        if (TENGINE_LAYOUT_NHWC == layout)
-        {
-            int dims_array[4] = {n, h, w, c};
-            set_tensor_shape(tensor, dims_array, dims_count);
-            break;
-        }
-    }
-    case 5:
-    {
-        if (TENGINE_LAYOUT_NCHW == layout)
-        {
-            int dims_array[5] = {1, n, c, h, w};
-            set_tensor_shape(tensor, dims_array, dims_count);
-            break;
-        }
-
-        if (TENGINE_LAYOUT_NHWC == layout)
-        {
-            int dims_array[5] = {1, n, h, w, c};
-            set_tensor_shape(tensor, dims_array, dims_count);
-            break;
-        }
-    }
-    default:
-        fprintf(stderr, "Cannot support %d dims tensor.\n", dims_count);
-    }
-
-    release_graph_tensor(tensor);
-    release_graph_node(node);
 
     return 0;
+}
+
+int create_input_node(graph_t graph, const char* node_name, int data_type, int layout, int n, int c, int h, int w, int dims_count)
+{
+    return create_input_node_with_multi_inputs(graph, node_name, data_type, 1, layout, n, c, h, w, dims_count);
 }
 
 int fill_fp32_tensor(tensor_t tensor, float value)
@@ -693,7 +697,7 @@ void test_graph_release(graph_t graph)
     release_tengine();
 }
 
-graph_t create_common_test_graph(const char* test_node_name, int data_type, int layout, int n, int c, int h, int w, common_test test_func, int dims_num)
+graph_t create_common_test_graph(const char* test_node_name, int data_type, int input_num, int layout, int n, int c, int h, int w, common_test test_func, int dims_num)
 {
     graph_t graph = create_graph(NULL, NULL, NULL);
     if (NULL == graph)
@@ -709,7 +713,7 @@ graph_t create_common_test_graph(const char* test_node_name, int data_type, int 
     }
 
     const char* input_name = "input_node";
-    if (create_input_node(graph, input_name, data_type, layout, n, c, h, w, dims_num) < 0)
+    if (create_input_node_with_multi_inputs(graph, input_name, data_type, input_num, layout, n, c, h, w, dims_num) < 0)
     {
         fprintf(stderr, "create input node failed.\n");
         return NULL;
@@ -740,7 +744,7 @@ graph_t create_common_test_graph(const char* test_node_name, int data_type, int 
     return graph;
 }
 
-int create_common_op_test_case(const char* test_nodename, int data_type, int layout, const int* dims, int dims_num, common_test setup_hook, const float eps)
+int create_common_op_test_case(const char* test_nodename, int data_type, int input_num, int layout, const int* dims, int dims_num, common_test setup_hook, const float eps)
 {
     int n = 1, c = 1, h = 1, w = 1;
     switch (dims_num)
@@ -796,7 +800,7 @@ int create_common_op_test_case(const char* test_nodename, int data_type, int lay
         return ret;
     }
 
-    graph_t graph = create_common_test_graph(test_nodename, data_type, layout, n, c, h, w, setup_hook, dims_num);
+    graph_t graph = create_common_test_graph(test_nodename, data_type, input_num, layout, n, c, h, w, setup_hook, dims_num);
     vector_t* outputs_ref = create_vector(sizeof(struct data_buffer*), free_data_buffer_in_vector);
     vector_t* outputs = create_vector(sizeof(struct data_buffer*), free_data_buffer_in_vector);
 
