@@ -697,7 +697,7 @@ void test_graph_release(graph_t graph)
     release_tengine();
 }
 
-graph_t create_common_test_graph(const char* test_node_name, int data_type, int input_num, int layout, int n, int c, int h, int w, common_test test_func, int dims_num)
+graph_t create_common_test_graph(const char* op, const char* test_node_name, int data_type, int input_num, int output_num, int layout, int n, int c, int h, int w, int dims_num)
 {
     graph_t graph = create_graph(NULL, NULL, NULL);
     if (NULL == graph)
@@ -719,10 +719,33 @@ graph_t create_common_test_graph(const char* test_node_name, int data_type, int 
         return NULL;
     }
 
-    if (test_func(graph, input_name, test_node_name, data_type, layout, n, c, h, w) < 0)
+    // setup test node
+    node_t test_node = create_graph_node(graph, test_node_name, op);
+    if (NULL == test_node)
     {
         fprintf(stderr, "create test node failed.\n");
         return NULL;
+    }
+
+    node_t input_node = get_graph_node(graph, input_name);
+    for (int i = 0; i < get_node_output_number(input_node); ++i)
+    {
+        tensor_t input_tensor = get_node_output_tensor(input_node, i);
+        set_node_input_tensor(test_node, i, input_tensor);
+    }
+
+    char tensor_name[512];
+    for (int i = 0; i < output_num; ++i)
+    {
+        snprintf(tensor_name, sizeof(tensor_name), "%s_%d", test_node_name, i);
+        tensor_t output_tensor = create_graph_tensor(graph, tensor_name, data_type);
+        if (!output_tensor)
+        {
+            fprintf(stderr, "create graph output tensor failed.\n");
+            return NULL;
+        }
+
+        set_node_output_tensor(test_node, i, output_tensor, TENSOR_TYPE_VAR);
     }
 
     /* set input/output node */
@@ -744,7 +767,7 @@ graph_t create_common_test_graph(const char* test_node_name, int data_type, int 
     return graph;
 }
 
-int create_common_op_test_case(const char* test_nodename, int data_type, int input_num, int layout, const int* dims, int dims_num, common_test setup_hook, const float eps)
+int create_common_op_test_case(const char* op, int input_num, int output_num, int data_type, int layout, const int* dims, int dims_num, const float eps)
 {
     int n = 1, c = 1, h = 1, w = 1;
     switch (dims_num)
@@ -752,42 +775,20 @@ int create_common_op_test_case(const char* test_nodename, int data_type, int inp
     case 0:
         return -1;
     case 1: w = 1; break;
-    case 2: h = dims[0]; w = dims[1];
+    case 2:
+        h = dims[0];
+        w = dims[1];
+        break;
     case 3:
-        if (layout == TENGINE_LAYOUT_NCHW)
-        {
-            c = dims[0];
-            h = dims[1];
-            w = dims[2];
-        }
-        else if (layout == TENGINE_LAYOUT_NHWC)
-        {
-            h = dims[0];
-            w = dims[1];
-            c = dims[2];
-        }
-        else
-        {
-            return -1;
-        }
-
+        c = dims[0];
+        h = dims[1];
+        w = dims[2];
         break;
     case 4:
-        if (layout == TENGINE_LAYOUT_NCHW)
-        {
-            n = dims[0];
-            c = dims[1];
-            h = dims[2];
-            w = dims[3];
-        }
-        else if (layout == TENGINE_LAYOUT_NHWC)
-        {
-            n = dims[0];
-            h = dims[1];
-            w = dims[2];
-            c = dims[3];
-        }
-        else { return -1; }
+        n = dims[0];
+        c = dims[1];
+        h = dims[2];
+        w = dims[3];
         break;
     default:
         return -1;
@@ -800,7 +801,7 @@ int create_common_op_test_case(const char* test_nodename, int data_type, int inp
         return ret;
     }
 
-    graph_t graph = create_common_test_graph(test_nodename, data_type, input_num, layout, n, c, h, w, setup_hook, dims_num);
+    graph_t graph = create_common_test_graph(op, "test_node", data_type, input_num, output_num, layout, n, c, h, w, dims_num);
     vector_t* outputs_ref = create_vector(sizeof(struct data_buffer*), free_data_buffer_in_vector);
     vector_t* outputs = create_vector(sizeof(struct data_buffer*), free_data_buffer_in_vector);
 
