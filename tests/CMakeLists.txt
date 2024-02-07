@@ -20,6 +20,7 @@ endfunction()
 tengine_op_test(test_op_absval)
 tengine_op_test(test_op_add_n)
 tengine_op_test(test_op_argmax)
+tengine_op_test(test_op_argmin)
 
 if (TENGINE_ENABLE_OPENDLA)
     function (tengine_opendla_op_test name file)

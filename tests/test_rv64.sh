@@ -31,6 +31,7 @@ test_models=(
 "${QEMU_CMD} ./tests/test_op_absval"
 "${QEMU_CMD} ./tests/test_op_add_n"
 "${QEMU_CMD} ./tests/test_op_argmax"
+"${QEMU_CMD} ./tests/test_op_argmin"
 )
 
 for (( i = 0 ; i < ${#test_models[@]} ; i++ ))
