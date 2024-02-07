@@ -6,6 +6,11 @@ if [ ! "${QEMU_CMD}" ]; then
 fi
 
 test_models=(
+"${QEMU_CMD} ./tests/test_op_absval"
+"${QEMU_CMD} ./tests/test_op_add_n"
+"${QEMU_CMD} ./tests/test_op_argmax"
+"${QEMU_CMD} ./tests/test_op_argmin"
+"${QEMU_CMD} ./tests/test_op_batchnorm"
 "${QEMU_CMD} ./tests/test_model_classification -m squeezenet     -i images/cat.jpg   -g 227,227 -w 104.007,116.669,122.679 -s 1,1,1"
 "${QEMU_CMD} ./tests/test_model_classification -m mobilenet      -i images/cat.jpg   -g 224,224 -w 104.007,116.669,122.679 -s 0.017,0.017,0.017"
 "${QEMU_CMD} ./tests/test_model_classification -m mobilenet_v2   -i images/cat.jpg   -g 224,224 -w 104.007,116.669,122.679 -s 0.017,0.017,0.017"
@@ -28,10 +33,6 @@ test_models=(
 "${QEMU_CMD} ./tests/test_model_yolov4"
 "${QEMU_CMD} ./tests/test_model_yolov4_tiny"
 "${QEMU_CMD} ./tests/test_model_yolov5s"
-"${QEMU_CMD} ./tests/test_op_absval"
-"${QEMU_CMD} ./tests/test_op_add_n"
-"${QEMU_CMD} ./tests/test_op_argmax"
-"${QEMU_CMD} ./tests/test_op_argmin"
 )
 
 for (( i = 0 ; i < ${#test_models[@]} ; i++ ))
