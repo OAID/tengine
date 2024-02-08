@@ -39,21 +39,16 @@
         return 0;                                                                                                          \
     }
 
-#define define_test_case(__case_name, __layout, ...)                                        \
-    define_common_test_case(OP_ARGMAX_NAME, __case_name##_00, __layout, 0, 0, __VA_ARGS__); \
-    define_common_test_case(OP_ARGMAX_NAME, __case_name##_01, __layout, 1, 0, __VA_ARGS__); \
-    define_common_test_case(OP_ARGMAX_NAME, __case_name##_02, __layout, 2, 0, __VA_ARGS__); \
-    define_common_test_case(OP_ARGMAX_NAME, __case_name##_10, __layout, 0, 1, __VA_ARGS__); \
-    define_common_test_case(OP_ARGMAX_NAME, __case_name##_11, __layout, 1, 1, __VA_ARGS__); \
-    define_common_test_case(OP_ARGMAX_NAME, __case_name##_12, __layout, 2, 1, __VA_ARGS__); \
-    static int __case_name()                                                                \
-    {                                                                                       \
-        __case_name##_00();                                                                 \
-        __case_name##_01();                                                                 \
-        __case_name##_02();                                                                 \
-        __case_name##_10();                                                                 \
-        __case_name##_11();                                                                 \
-        __case_name##_12();                                                                 \
+#define define_test_case(__case_name, __layout, ...)                                                                                             \
+    define_common_test_case(OP_ARGMAX_NAME, __case_name##_00, __layout, 0, 0, __VA_ARGS__);                                                      \
+    define_common_test_case(OP_ARGMAX_NAME, __case_name##_01, __layout, 1, 0, __VA_ARGS__);                                                      \
+    define_common_test_case(OP_ARGMAX_NAME, __case_name##_02, __layout, 2, 0, __VA_ARGS__);                                                      \
+    define_common_test_case(OP_ARGMAX_NAME, __case_name##_10, __layout, 0, 1, __VA_ARGS__);                                                      \
+    define_common_test_case(OP_ARGMAX_NAME, __case_name##_11, __layout, 1, 1, __VA_ARGS__);                                                      \
+    define_common_test_case(OP_ARGMAX_NAME, __case_name##_12, __layout, 2, 1, __VA_ARGS__);                                                      \
+    static int __case_name()                                                                                                                     \
+    {                                                                                                                                            \
+        return __case_name##_00() || __case_name##_01() || __case_name##_02() || __case_name##_10() || __case_name##_11() || __case_name##_12(); \
     }
 
 define_test_case(op_test_case_0, TENGINE_LAYOUT_NCHW, 3, 64, 128);
