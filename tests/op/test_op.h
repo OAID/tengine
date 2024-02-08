@@ -111,7 +111,14 @@ struct data_buffer* create_data_buffer(const int* dims, const int dim_num, const
     }
 
     buf->scale = random_float(-2.0, 2.0) + 0.01;
-    buf->zero_point = rand_int(-10, 10);
+    if (dtype == TENGINE_DT_UINT8)
+    {
+        buf->zero_point = rand_int(5, 25);
+    }
+    else
+    {
+        buf->zero_point = rand_int(-10, 10);
+    }
     return buf;
 }
 
@@ -185,7 +192,14 @@ int fill_random_tensor(tensor_t v)
         const int n = get_tensor_buffer_size(v) / sizeof(__dtype); \
         for (int i = 0; i < n; ++i)                                \
         {                                                          \
-            p[i] = (__dtype)rand_int(-15, 15);                     \
+            if (dtype == TENGINE_DT_UINT8)                         \
+            {                                                      \
+                p[i] = (__dtype)rand_int(0, 30);                   \
+            }                                                      \
+            else                                                   \
+            {                                                      \
+                p[i] = (__dtype)rand_int(-15, 15);                 \
+            }                                                      \
         }                                                          \
     } while (0);
 

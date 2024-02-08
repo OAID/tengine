@@ -8,22 +8,35 @@
 #include <stdlib.h>
 #include "util/vector.h"
 
-#define define_common_test_case(__op_name, __case_name, __layout, __axis, __keepdims, ...)                           \
-    static int __case_name()                                                                                         \
-    {                                                                                                                \
-        int data_type = TENGINE_DT_FP32;                                                                             \
-        int layout = __layout;                                                                                       \
-        int dims[] = {__VA_ARGS__};                                                                                  \
-        int dims_num = sizeof(dims) / sizeof(dims[0]);                                                               \
-        argmax_param_t param = {.axis = __axis, .keepdims = __keepdims};                                             \
-        vector_t* inputs = create_vector(sizeof(struct data_buffer*), free_data_buffer_in_vector);                   \
-        struct data_buffer* input = create_data_buffer_fp32(dims, sizeof(dims) / sizeof(int));                       \
-        push_vector_data(inputs, &input);                                                                            \
-        int ret = create_common_op_test_case(__op_name, &param, sizeof(param), inputs, 1, data_type, layout, 0.001); \
-        if (ret) return ret;                                                                                         \
-        release_vector(inputs);                                                                                      \
-        fprintf(stderr, "test case pass, axis=%d, keepdims: %d\n", __axis, __keepdims);                              \
-        return 0;                                                                                                    \
+#define define_common_test_case(__op_name, __case_name, __layout, __axis, __keepdims, ...)                                 \
+    static int __case_name()                                                                                               \
+    {                                                                                                                      \
+        int layout = __layout;                                                                                             \
+        int dims[] = {__VA_ARGS__};                                                                                        \
+        int dims_num = sizeof(dims) / sizeof(dims[0]);                                                                     \
+        argmax_param_t param = {.axis = __axis, .keepdims = __keepdims};                                                   \
+        vector_t* inputs = create_vector(sizeof(struct data_buffer*), free_data_buffer_in_vector);                         \
+        struct data_buffer* input = create_data_buffer_fp32(dims, sizeof(dims) / sizeof(int));                             \
+        push_vector_data(inputs, &input);                                                                                  \
+        int ret = create_common_op_test_case(__op_name, &param, sizeof(param), inputs, 1, TENGINE_DT_FP32, layout, 0.001); \
+        if (ret)                                                                                                           \
+        {                                                                                                                  \
+            fprintf(stderr, "test argmin op failed: dims = [%d, %d, %d], dtype = fp32\n", dims[0], dims[1], dims[2]);      \
+            return ret;                                                                                                    \
+        }                                                                                                                  \
+        release_vector(inputs);                                                                                            \
+        inputs = create_vector(sizeof(struct data_buffer*), free_data_buffer_in_vector);                                   \
+        input = create_data_buffer(dims, sizeof(dims) / sizeof(int), TENGINE_DT_UINT8);                                    \
+        push_vector_data(inputs, &input);                                                                                  \
+        ret = create_common_op_test_case(__op_name, &param, sizeof(param), inputs, 1, TENGINE_DT_UINT8, layout, 0.001);    \
+        if (ret)                                                                                                           \
+        {                                                                                                                  \
+            fprintf(stderr, "test argmin op failed: dims = [%d, %d, %d], dtype = uint8\n", dims[0], dims[1], dims[2]);     \
+            return ret;                                                                                                    \
+        }                                                                                                                  \
+        release_vector(inputs);                                                                                            \
+        fprintf(stderr, "test case pass, axis=%d, keepdims: %d\n", __axis, __keepdims);                                    \
+        return 0;                                                                                                          \
     }
 
 #define define_test_case(__case_name, __layout, ...)                                        \
