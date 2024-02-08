@@ -29,57 +29,10 @@ struct data_buffer
     size_t size;
     int dims[8];
     int dim_num;
+    int dtype;
+    float scale;
+    int32_t zero_point;
 };
-
-struct data_buffer* create_data_buffer_from_tensor(tensor_t tensor)
-{
-    struct data_buffer* buf = (struct data_buffer*)malloc(sizeof(struct data_buffer));
-    buf->size = get_tensor_buffer_size(tensor);
-    buf->data = malloc(buf->size);
-    memcpy(buf->data, get_tensor_buffer(tensor), buf->size);
-    buf->dim_num = get_tensor_shape(tensor, buf->dims, 8);
-    return buf;
-}
-
-struct data_buffer* create_data_buffer_fp32(const int* dims, const int dim_num)
-{
-    struct data_buffer* buf = (struct data_buffer*)malloc(sizeof(struct data_buffer));
-    buf->size = (int)(dim_num > 0);
-    buf->dim_num = dim_num;
-
-    for (int i = 0; i < dim_num; ++i)
-    {
-        buf->size *= dims[i];
-        buf->dims[i] = dims[i];
-    }
-    buf->size *= sizeof(float);
-    buf->data = malloc(buf->size);
-    return buf;
-}
-
-void free_data_buffer_in_vector(void* p)
-{
-    struct data_buffer* buf = *(struct data_buffer**)p;
-    free(buf->data);
-    free(buf);
-}
-
-bool is_match_buffer_fp32(const struct data_buffer* lhs, const struct data_buffer* rhs, const float eps)
-{
-    if (lhs->size != rhs->size) return false;
-    float* p1 = lhs->data;
-    float* p2 = rhs->data;
-
-    for (int i = 0; i < lhs->size / sizeof(float); ++i)
-    {
-        if (fabs(p1[i] - p2[i]) > eps)
-        {
-            return false;
-        }
-    }
-
-    return true;
-}
 
 float random_float(float a, float b)
 {
@@ -93,14 +46,176 @@ float random_float(float a, float b)
     return v;
 }
 
-void fill_random_tensor_fp32(tensor_t v)
+int rand_int(const int a, const int b)
 {
-    const int n = get_tensor_buffer_size(v);
-    float* data = get_tensor_buffer(v);
-    for (int i = 0; i < n / sizeof(float); ++i)
+    const int delta = b - a;
+    return a + rand() % delta;
+}
+
+struct data_buffer* create_data_buffer_from_tensor(tensor_t tensor)
+{
+    struct data_buffer* buf = (struct data_buffer*)malloc(sizeof(struct data_buffer));
+    buf->size = get_tensor_buffer_size(tensor);
+    buf->data = malloc(buf->size);
+    memcpy(buf->data, get_tensor_buffer(tensor), buf->size);
+    buf->dim_num = get_tensor_shape(tensor, buf->dims, 8);
+    buf->dtype = get_tensor_data_type(tensor);
+    get_tensor_quant_param(tensor, &buf->scale, &buf->zero_point, 1);
+    return buf;
+}
+
+int dtype_to_size(const int dtype)
+{
+    switch (dtype)
     {
-        data[i] = random_float(-1.2, 1.2);
+    case TENGINE_DT_FP32:
+        return sizeof(float);
+    case TENGINE_DT_INT8:
+        return sizeof(int8_t);
+    case TENGINE_DT_UINT8:
+        return sizeof(uint8_t);
+    case TENGINE_DT_FP16:
+        return sizeof(uint16_t);
+    case TENGINE_DT_INT16:
+        return sizeof(int16_t);
+    case TENGINE_DT_INT32:
+        return sizeof(int32_t);
+    default:
+        return -1;
     }
+}
+
+struct data_buffer* create_data_buffer(const int* dims, const int dim_num, const int dtype)
+{
+    const int elem_size = dtype_to_size(dtype);
+    if (elem_size < 0) return NULL;
+
+    struct data_buffer* buf = (struct data_buffer*)malloc(sizeof(struct data_buffer));
+    if (!buf) return NULL;
+    buf->size = (int)(dim_num > 0);
+    buf->dim_num = dim_num;
+
+    for (int i = 0; i < dim_num; ++i)
+    {
+        buf->size *= dims[i];
+        buf->dims[i] = dims[i];
+    }
+
+    buf->size *= elem_size;
+    buf->dtype = dtype;
+    buf->data = malloc(buf->size);
+    if (!buf->data)
+    {
+        free(buf);
+        return NULL;
+    }
+
+    buf->scale = random_float(-2.0, 2.0) + 0.01;
+    buf->zero_point = rand_int(-10, 10);
+    return buf;
+}
+
+struct data_buffer* create_data_buffer_fp32(const int* dims, const int dim_num)
+{
+    return create_data_buffer(dims, dim_num, TENGINE_DT_FP32);
+}
+
+void free_data_buffer_in_vector(void* p)
+{
+    struct data_buffer* buf = *(struct data_buffer**)p;
+    free(buf->data);
+    free(buf);
+}
+
+bool is_match_buffer(const struct data_buffer* lhs, const struct data_buffer* rhs, const float eps)
+{
+    if (lhs->size != rhs->size || lhs->dtype != rhs->dtype) return false;
+#define __compare(__dtype)                                                                \
+    do {                                                                                  \
+        const __dtype* p1 = lhs->data;                                                    \
+        const __dtype* p2 = rhs->data;                                                    \
+        if (lhs->scale != rhs->scale || lhs->zero_point != rhs->zero_point) return false; \
+        for (int i = 0; i < lhs->size / dtype_to_size(lhs->dtype); ++i)                   \
+        {                                                                                 \
+            const int a = p1[i];                                                          \
+            const int b = p2[i];                                                          \
+            if (abs(a - b) != 0)                                                          \
+            {                                                                             \
+                return false;                                                             \
+            }                                                                             \
+        }                                                                                 \
+        return true;                                                                      \
+    } while (0)
+
+    if (lhs->dtype == TENGINE_DT_FP32)
+    {
+        const float* p1 = lhs->data;
+        const float* p2 = rhs->data;
+
+        for (int i = 0; i < lhs->size / sizeof(float); ++i)
+        {
+            if (fabs(p1[i] - p2[i]) > eps)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+    else if (lhs->dtype == TENGINE_DT_UINT8)
+    {
+        __compare(uint8_t);
+    }
+    else if (lhs->dtype == TENGINE_DT_INT8)
+    {
+        __compare(int8_t);
+    }
+    else if (lhs->dtype == TENGINE_DT_INT32)
+    {
+        __compare(int32_t);
+    }
+#undef __compare
+}
+
+int fill_random_tensor(tensor_t v)
+{
+#define __fill(__dtype)                                            \
+    do {                                                           \
+        __dtype* p = get_tensor_buffer(v);                         \
+        const int n = get_tensor_buffer_size(v) / sizeof(__dtype); \
+        for (int i = 0; i < n; ++i)                                \
+        {                                                          \
+            p[i] = (__dtype)rand_int(-15, 15);                     \
+        }                                                          \
+    } while (0);
+
+    const int dtype = get_tensor_data_type(v);
+    if (dtype == TENGINE_DT_FP32)
+    {
+        const int n = get_tensor_buffer_size(v);
+        float* data = get_tensor_buffer(v);
+        for (int i = 0; i < n / sizeof(float); ++i)
+        {
+            data[i] = random_float(-1.2, 1.2);
+        }
+        return 0;
+    }
+    else if (dtype == TENGINE_DT_INT8)
+    {
+        __fill(int8_t);
+        return 0;
+    }
+    else if (dtype == TENGINE_DT_UINT8)
+    {
+        __fill(uint8_t);
+        return 0;
+    }
+    else if (dtype == TENGINE_DT_INT32)
+    {
+        __fill(int32_t);
+        return 0;
+    }
+    return -1;
 }
 
 typedef int (*node_setup_hook_fn)(graph_t graph, const char* test_node_name, const char* op, const char* input_name, int data_type, int input_num, int output_num);
@@ -774,15 +889,24 @@ graph_t create_common_test_graph(const char* op, const char* test_node_name, con
 
     // setup input tensor
     char tensor_name[512];
+    float scale = 1.0;
+    int zero_point = 0.0;
+
     for (int i = 0; i < get_vector_num(inputs); ++i)
     {
         struct data_buffer* input = *(struct data_buffer**)get_vector_data(inputs, i);
         snprintf(tensor_name, sizeof(tensor_name), "%s_%d", input_name, i);
-        tensor_t tensor = create_graph_tensor(graph, tensor_name, data_type);
+        tensor_t tensor = create_graph_tensor(graph, tensor_name, input->dtype);
         if (!tensor) return NULL;
 
         set_tensor_shape(tensor, input->dims, input->dim_num);
         set_tensor_buffer(tensor, input->data, input->size);
+        if (input->dtype != TENGINE_DT_FP16 && input->dtype != TENGINE_DT_FP32)
+        {
+            scale = input->scale;
+            zero_point = input->zero_point;
+            set_tensor_quant_param(tensor, &scale, &zero_point, 1);
+        }
 
         if (set_node_output_tensor(input_node, i, tensor, TENSOR_TYPE_VAR))
         {
@@ -800,6 +924,12 @@ graph_t create_common_test_graph(const char* op, const char* test_node_name, con
     {
         snprintf(tensor_name, sizeof(tensor_name), "%s_%d", test_node_name, i);
         tensor_t output_tensor = create_graph_tensor(graph, tensor_name, data_type);
+
+        if (data_type != TENGINE_DT_FP16 && data_type != TENGINE_DT_FP32)
+        {
+            set_tensor_quant_param(output_tensor, &scale, &zero_point, 1);
+        }
+
         if (set_node_output_tensor(test_node, i, output_tensor, TENSOR_TYPE_VAR))
         {
             return NULL;
@@ -856,7 +986,7 @@ int create_common_op_test_case(const char* op, const void* params, const size_t 
         for (int t = 0; t < get_node_output_number(input_node); ++t)
         {
             tensor_t input_tensor = get_graph_input_tensor(graph_ref, i, t);
-            fill_random_tensor_fp32(input_tensor);
+            fill_random_tensor(input_tensor);
         }
     }
 
@@ -902,7 +1032,8 @@ int create_common_op_test_case(const char* op, const void* params, const size_t 
     {
         struct data_buffer* p1 = *(struct data_buffer**)get_vector_data(outputs_ref, i);
         struct data_buffer* p2 = *(struct data_buffer**)get_vector_data(outputs, i);
-        if (!is_match_buffer_fp32(p1, p2, eps))
+
+        if (!is_match_buffer(p1, p2, eps))
         {
             fprintf(stderr, "%dth output is mismatch\n", i);
             ret = -1;

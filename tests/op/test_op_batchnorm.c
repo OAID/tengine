@@ -8,9 +8,9 @@
 #include <stdlib.h>
 #include "util/vector.h"
 
-static void allocate_bn_inputs(vector_t* inputs, const int* dims, const int dim_num)
+static void allocate_bn_inputs(vector_t* inputs, const int* dims, const int dim_num, const int dtype)
 {
-    struct data_buffer* input = create_data_buffer_fp32(dims, dim_num);
+    struct data_buffer* input = create_data_buffer(dims, dim_num, dtype);
     struct data_buffer *mean, *var, *gamma, *beta;
 
     int dim = dims[1];
@@ -59,10 +59,23 @@ int op_test_case_0()
         rescale_factor = rand() % 100 > 50 ? rescale_factor : .0;                                                                               \
         batchnorm_param_t param = {.caffe_flavor = __caffe_flavor, .rescale_factor = rescale_factor, .eps = 0.001};                             \
         vector_t* inputs = create_vector(sizeof(struct data_buffer*), free_data_buffer_in_vector);                                              \
-        allocate_bn_inputs(inputs, dims, __dim_num);                                                                                            \
+        allocate_bn_inputs(inputs, dims, __dim_num, TENGINE_DT_FP32);                                                                           \
         int ret = create_common_op_test_case(OP_BATCHNORM_NAME, &param, sizeof(param), inputs, 1, TENGINE_DT_FP32, TENGINE_LAYOUT_NCHW, 0.001); \
         release_vector(inputs);                                                                                                                 \
-        if (ret) return ret;                                                                                                                    \
+        if (ret)                                                                                                                                \
+        {                                                                                                                                       \
+            fprintf(stderr, "batchnorm op test failed. dim_num = %d, caffe_flavor = %d, dtype = fp32\n", __dim_num, __caffe_flavor);            \
+            return ret;                                                                                                                         \
+        }                                                                                                                                       \
+        inputs = create_vector(sizeof(struct data_buffer*), free_data_buffer_in_vector);                                                        \
+        allocate_bn_inputs(inputs, dims, __dim_num, TENGINE_DT_UINT8);                                                                          \
+        ret = create_common_op_test_case(OP_BATCHNORM_NAME, &param, sizeof(param), inputs, 1, TENGINE_DT_UINT8, TENGINE_LAYOUT_NCHW, 0.001);    \
+        release_vector(inputs);                                                                                                                 \
+        if (ret)                                                                                                                                \
+        {                                                                                                                                       \
+            fprintf(stderr, "batchnorm op test failed. dim_num = %d, caffe_flavor = %d, dtype = uint8\n", __dim_num, __caffe_flavor);           \
+            return ret;                                                                                                                         \
+        }                                                                                                                                       \
         fprintf(stderr, "batchnorm op test pass: dim_num = %d, caffe_flavor = %d\n", __dim_num, __caffe_flavor);                                \
     } while (0)
 
@@ -73,6 +86,8 @@ int op_test_case_0()
         __run_test_case(3, 1);
         __run_test_case(4, 1);
     }
+
+    return 0;
 }
 
 int main(void)
