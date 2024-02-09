@@ -11,6 +11,7 @@ test_models=(
 "${QEMU_CMD} ./tests/test_op_argmax"
 "${QEMU_CMD} ./tests/test_op_argmin"
 "${QEMU_CMD} ./tests/test_op_batchnorm"
+"${QEMU_CMD} ./tests/test_op_batchtospacend"
 "${QEMU_CMD} ./tests/test_model_classification -m squeezenet     -i images/cat.jpg   -g 227,227 -w 104.007,116.669,122.679 -s 1,1,1"
 "${QEMU_CMD} ./tests/test_model_classification -m mobilenet      -i images/cat.jpg   -g 224,224 -w 104.007,116.669,122.679 -s 0.017,0.017,0.017"
 "${QEMU_CMD} ./tests/test_model_classification -m mobilenet_v2   -i images/cat.jpg   -g 224,224 -w 104.007,116.669,122.679 -s 0.017,0.017,0.017"
