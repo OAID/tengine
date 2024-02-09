@@ -7,7 +7,7 @@ function(tengine_op_test name)
     file(GLOB TENGINE_UTIL_SOURCE_FILES      ${PROJECT_SOURCE_DIR}/tests/common/util/*.c)
     add_executable(${name} "${CMAKE_CURRENT_SOURCE_DIR}/op/${name}.c" "${TENGINE_UTIL_SOURCE_FILES}")
 
-    target_link_libraries(${name} PUBLIC "${CMAKE_PROJECT_NAME}")
+    target_link_libraries(${name} PUBLIC "${CMAKE_PROJECT_NAME}-static")
 
     target_include_directories (${name} PRIVATE "${PROJECT_SOURCE_DIR}/source")
     target_include_directories (${name} PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")
@@ -22,6 +22,8 @@ tengine_op_test(test_op_add_n)
 tengine_op_test(test_op_argmax)
 tengine_op_test(test_op_argmin)
 tengine_op_test(test_op_batchnorm)
+tengine_op_test(test_op_batchtospacend)
+tengine_op_test(test_op_bias)
 
 if (TENGINE_ENABLE_OPENDLA)
     function (tengine_opendla_op_test name file)
