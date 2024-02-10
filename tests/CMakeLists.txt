@@ -24,6 +24,7 @@ tengine_op_test(test_op_argmin)
 tengine_op_test(test_op_batchnorm)
 tengine_op_test(test_op_batchtospacend)
 tengine_op_test(test_op_bias)
+tengine_op_test(test_op_broadmul)
 
 if (TENGINE_ENABLE_OPENDLA)
     function (tengine_opendla_op_test name file)
