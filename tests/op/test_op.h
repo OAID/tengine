@@ -136,7 +136,7 @@ void free_data_buffer_in_vector(void* p)
 
 bool is_match_buffer(const struct data_buffer* lhs, const struct data_buffer* rhs, const float eps)
 {
-    if (lhs->size != rhs->size || lhs->dtype != rhs->dtype) return false;
+    if (lhs->dim_num != rhs->dim_num || lhs->size != rhs->size || lhs->dtype != rhs->dtype) return false;
 #define __compare(__dtype)                                                                \
     do {                                                                                  \
         const __dtype* p1 = lhs->data;                                                    \
@@ -154,6 +154,11 @@ bool is_match_buffer(const struct data_buffer* lhs, const struct data_buffer* rh
         return true;                                                                      \
     } while (0)
 
+    for (int i = 0; i < lhs->dim_num; ++i)
+    {
+        if (lhs->dims[i] != rhs->dims[i]) return false;
+    }
+
     if (lhs->dtype == TENGINE_DT_FP32)
     {
         const float* p1 = lhs->data;
@@ -163,6 +168,7 @@ bool is_match_buffer(const struct data_buffer* lhs, const struct data_buffer* rh
         {
             if (fabs(p1[i] - p2[i]) > eps)
             {
+                fprintf(stderr, "buffer mismatch at %d, lhs = %f, rhs = %f, dims1 = {%d, %d, %d, %d}, dims2 = {%d, %d, %d, %d}\n", i, p1[i], p2[i], lhs->dims[0], lhs->dims[1], lhs->dims[2], lhs->dims[3], rhs->dims[0], rhs->dims[1], rhs->dims[2], rhs->dims[3]);
                 return false;
             }
         }
