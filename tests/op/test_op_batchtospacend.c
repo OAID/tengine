@@ -68,5 +68,7 @@ static int op_test_case(const int crop_left, const int crop_right, const int cro
 
 int main(void)
 {
+    time_t tim = time(NULL);
+    srand((unsigned int)tim);
     return op_test_case(0, 0, 0, 0, 1, 1) || op_test_case(1, 2, 1, 2, 1, 2) || op_test_case(1, 1, 1, 1, 2, 2);
 }
