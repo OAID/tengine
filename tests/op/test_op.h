@@ -111,7 +111,6 @@ struct data_buffer* create_data_buffer(const int* dims, const int dim_num, const
     }
 
     buf->scale = random_float(-2.0, 2.0) + 0.01;
-    buf->zero_point = rand_int(5, 25);
     buf->zero_point = rand_int(-10, 10);
     return buf;
 }
@@ -200,21 +199,22 @@ static float __fp16_to_fp32(uint16_t const value)
 bool is_match_buffer(const struct data_buffer* lhs, const struct data_buffer* rhs, const float eps)
 {
     if (lhs->dim_num != rhs->dim_num || lhs->size != rhs->size || lhs->dtype != rhs->dtype) return false;
-#define __compare(__dtype)                                                                \
-    do {                                                                                  \
-        const __dtype* p1 = lhs->data;                                                    \
-        const __dtype* p2 = rhs->data;                                                    \
-        if (lhs->scale != rhs->scale || lhs->zero_point != rhs->zero_point) return false; \
-        for (int i = 0; i < lhs->size / dtype_to_size(lhs->dtype); ++i)                   \
-        {                                                                                 \
-            const int a = (int)p1[i];                                                     \
-            const int b = (int)p2[i];                                                     \
-            if (abs(a - b) != 0)                                                          \
-            {                                                                             \
-                return false;                                                             \
-            }                                                                             \
-        }                                                                                 \
-        return true;                                                                      \
+#define __compare(__dtype)                                                                                                                                                                                                                                   \
+    do {                                                                                                                                                                                                                                                     \
+        const __dtype* p1 = lhs->data;                                                                                                                                                                                                                       \
+        const __dtype* p2 = rhs->data;                                                                                                                                                                                                                       \
+        if (lhs->scale != rhs->scale || lhs->zero_point != rhs->zero_point) return false;                                                                                                                                                                    \
+        for (int i = 0; i < lhs->size / dtype_to_size(lhs->dtype); ++i)                                                                                                                                                                                      \
+        {                                                                                                                                                                                                                                                    \
+            const int a = (int)p1[i];                                                                                                                                                                                                                        \
+            const int b = (int)p2[i];                                                                                                                                                                                                                        \
+            if (abs(a - b) != 0)                                                                                                                                                                                                                             \
+            {                                                                                                                                                                                                                                                \
+                fprintf(stderr, "buffer mismatch at %d, lhs = %d, rhs = %d, dims1 = {%d, %d, %d, %d}, dims2 = {%d, %d, %d, %d}\n", i, a, b, lhs->dims[0], lhs->dims[1], lhs->dims[2], lhs->dims[3], rhs->dims[0], rhs->dims[1], rhs->dims[2], rhs->dims[3]); \
+                return false;                                                                                                                                                                                                                                \
+            }                                                                                                                                                                                                                                                \
+        }                                                                                                                                                                                                                                                    \
+        return true;                                                                                                                                                                                                                                         \
     } while (0)
 
     for (int i = 0; i < lhs->dim_num; ++i)
@@ -909,9 +909,7 @@ int test_graph_init()
 {
     // now init tengine will mask critical filed and return an error
     // TODO: fix this fatal issue
-    init_tengine();
-
-    return 0;
+    return init_tengine();
 }
 
 int test_graph_run(graph_t graph)
@@ -937,7 +935,6 @@ void test_graph_release(graph_t graph)
 {
     postrun_graph(graph);
     destroy_graph(graph);
-    release_tengine();
 }
 
 static int craete_common_test_node(graph_t graph, const char* test_node_name, const char* op, const char* input_name, int data_type, int input_num, int output_num)
@@ -1081,10 +1078,8 @@ int create_common_op_test_case(const char* op, const void* params, const size_t 
     }
 
     graph_t graph_ref = create_common_test_graph(op, "test_node", params, param_size, inputs, output_num, data_type, layout);
-    graph_t graph = create_common_test_graph(op, "test_node", params, param_size, inputs, output_num, data_type, layout);
 
     vector_t* outputs_ref = create_vector(sizeof(struct data_buffer*), free_data_buffer_in_vector);
-    vector_t* outputs = create_vector(sizeof(struct data_buffer*), free_data_buffer_in_vector);
 
     for (int i = 0; i < get_graph_input_node_number(graph_ref); ++i)
     {
@@ -1114,8 +1109,12 @@ int create_common_op_test_case(const char* op, const void* params, const size_t 
             push_vector_data(outputs_ref, &data);
         }
     }
+    test_graph_release(graph_ref);
 
     setenv("TG_DEBUG_REF", "0", 1);
+
+    graph_t graph = create_common_test_graph(op, "test_node", params, param_size, inputs, output_num, data_type, layout);
+    vector_t* outputs = create_vector(sizeof(struct data_buffer*), free_data_buffer_in_vector);
     ret = test_graph_run(graph);
     if (ret)
     {
@@ -1148,10 +1147,10 @@ int create_common_op_test_case(const char* op, const void* params, const size_t 
     }
 
 out:
-    test_graph_release(graph);
-    test_graph_release(graph_ref);
-    release_vector(outputs);
     release_vector(outputs_ref);
+    release_vector(outputs);
+    test_graph_release(graph);
+    release_tengine();
     return ret;
 }
 

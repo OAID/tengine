@@ -38,7 +38,7 @@ static int test_ceil_op()
 
 int main(void)
 {
-    time_t tim = time(NULL);
-    srand((unsigned int)tim);
+    /* time_t tim = time(NULL); */
+    /* srand((unsigned int)tim); */
     return test_ceil_op();
 }
