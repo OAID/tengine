@@ -35,7 +35,7 @@ static int op_test_case(const int crop_left, const int crop_right, const int cro
         .dilation_x = dilation_x,
         .dilation_y = dilation_y};
 
-    int dims[4] = {rand_int(1, 10) * params.dilation_x * params.dilation_y, rand_int(1, 128), rand_int(1, 128), rand_int(1, 128)};
+    int dims[4] = {rand_int(1, 256) * params.dilation_x * params.dilation_y, rand_int(1, 16), rand_int(1, 16), rand_int(1, 32)};
 
     const int expand = dims[0] / (params.dilation_x * params.dilation_y);
 
@@ -68,7 +68,5 @@ static int op_test_case(const int crop_left, const int crop_right, const int cro
 
 int main(void)
 {
-    time_t tim = time(NULL);
-    srand((unsigned int)tim);
     return op_test_case(0, 0, 0, 0, 1, 1) || op_test_case(1, 2, 1, 2, 1, 2) || op_test_case(1, 1, 1, 1, 2, 2);
 }

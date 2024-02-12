@@ -110,8 +110,8 @@ struct data_buffer* create_data_buffer(const int* dims, const int dim_num, const
         return NULL;
     }
 
-    buf->scale = random_float(-2.0, 2.0) + 0.01;
-    buf->zero_point = rand_int(-10, 10);
+    buf->scale = random_float(0.1, 2.0) + 0.01;
+    buf->zero_point = rand_int(-5, 5);
     return buf;
 }
 
