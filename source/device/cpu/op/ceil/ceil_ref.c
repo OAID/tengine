@@ -38,47 +38,17 @@
 int ref_ceil_fp32(struct tensor* input_tensor, struct tensor* output_tensor, int num_thread)
 {
     // dims size = 2 or 3
-    if (input_tensor->dim_num < 4)
-    {
-        float* input_data = (float*)input_tensor->data;
-        float* out_data = (float*)output_tensor->data;
-        int total_size = input_tensor->elem_num;
-
-        for (int i = 0; i < total_size; i++)
-        {
-            input_data[i] = ceilf(out_data[i]);
-        }
-
-        return 0;
-    }
-    // dims size 3
-    else if (input_tensor->dim_num == 4)
-    {
-        int w = input_tensor->dims[3];
-        int h = output_tensor->dims[2];
-        int channels = input_tensor->dims[1];
-        int size = h * w;
-        int c_step = h * w;
-
-        float* input_data = (float*)input_tensor->data;
-        float* out_data = (float*)output_tensor->data;
+    float* input_data = (float*)input_tensor->data;
+    float* out_data = (float*)output_tensor->data;
+    int total_size = input_tensor->elem_num;
 
 #pragma omp parallel for num_threads(num_thread)
-        for (int q = 0; q < channels; q++)
-        {
-            float* src = input_data + c_step * q;
-            float* dst = out_data + c_step * q;
-
-            for (int i = 0; i < size; i++)
-            {
-                dst[i] = ceilf(src[i]);
-            }
-        }
-
-        return 0;
+    for (int i = 0; i < total_size; i++)
+    {
+        input_data[i] = ceilf(out_data[i]);
     }
 
-    return -1;
+    return 0;
 }
 
 int ref_ceil_uint8(struct tensor* input_tensor, struct tensor* output_tensor, int num_thread)
@@ -101,40 +71,12 @@ int ref_ceil_uint8(struct tensor* input_tensor, struct tensor* output_tensor, in
         input_data[i] = ((float)input_uint8[i] - (float)input_zero) * input_scale;
     }
 
-    // dims size = 2 or 3
-    if (input_tensor->dim_num < 4)
-    {
-        int total_size = input_tensor->elem_num;
-
-        for (int i = 0; i < total_size; i++)
-        {
-            input_data[i] = ceil(out_data[i]);
-        }
-
-        // return 0;
-    }
-    // dims size 3
-    else if (input_tensor->dim_num == 4)
-    {
-        int w = input_tensor->dims[3];
-        int h = output_tensor->dims[2];
-        int channels = input_tensor->dims[1];
-        int size = h * w;
-        int c_step = h * w;
+    int total_size = input_tensor->elem_num;
 
 #pragma omp parallel for num_threads(num_thread)
-        for (int q = 0; q < channels; q++)
-        {
-            float* src = input_data + c_step * q;
-            float* dst = out_data + c_step * q;
-
-            for (int i = 0; i < size; i++)
-            {
-                dst[i] = ceil(src[i]);
-            }
-        }
-
-        // return 0;
+    for (int i = 0; i < total_size; i++)
+    {
+        input_data[i] = ceil(out_data[i]);
     }
 
     /* quant */
