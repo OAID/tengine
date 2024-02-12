@@ -111,14 +111,8 @@ struct data_buffer* create_data_buffer(const int* dims, const int dim_num, const
     }
 
     buf->scale = random_float(-2.0, 2.0) + 0.01;
-    if (dtype == TENGINE_DT_UINT8)
-    {
-        buf->zero_point = rand_int(5, 25);
-    }
-    else
-    {
-        buf->zero_point = rand_int(-10, 10);
-    }
+    buf->zero_point = rand_int(5, 25);
+    buf->zero_point = rand_int(-10, 10);
     return buf;
 }
 
@@ -134,6 +128,75 @@ void free_data_buffer_in_vector(void* p)
     free(buf);
 }
 
+static float __fp16_to_fp32(uint16_t const value)
+{
+    union
+    {
+        struct
+        {
+            uint16_t frac : 10;
+            uint16_t exp : 5;
+            uint16_t sign : 1;
+        } __attribute__((packed)) bits;
+
+        uint16_t u16;
+    } __attribute__((packed)) pack16 = {.u16 = value};
+
+    union
+    {
+        struct
+        {
+            uint32_t frac : 23;
+            uint32_t exp : 8;
+            uint32_t sign : 1;
+        } __attribute__((packed)) bits;
+        uint32_t u32;
+        float fp32;
+    } __attribute__((packed)) pack32 = {.u32 = 0};
+
+    if (pack16.bits.exp == 0 && pack16.bits.frac == 0)
+    {
+        pack32.u32 = 0;
+        pack32.bits.sign = pack16.bits.sign;
+        return pack32.fp32;
+    }
+
+    // normalized case
+    if (pack16.bits.exp != 0xff && pack16.bits.exp != 0)
+    {
+        pack32.bits.sign = pack16.bits.sign;
+        pack32.bits.exp = pack16.bits.exp - 15 + 127;
+        pack32.bits.frac = pack16.bits.frac << 13;
+        return pack32.fp32;
+    }
+
+    // subnormal case
+    // 5.96046448e-8f = 2**-14 * 1/1024.0
+    if (pack16.bits.exp == 0 && pack16.bits.frac != 0)
+    {
+        const float alpha = pack16.bits.sign == 0 ? 5.96046448e-8f : -5.96046448e-8f;
+        return pack16.bits.frac * alpha;
+    }
+
+    if (pack16.bits.exp == 0x1f && pack16.bits.frac == 0)
+    {
+        pack32.bits.sign = pack16.bits.sign;
+        pack32.bits.exp = 0xff;
+        pack32.bits.frac = 0;
+        return pack32.fp32;
+    }
+
+    if (pack16.bits.exp == 0x1f && pack16.bits.frac != 0)
+    {
+        pack32.bits.sign = pack16.bits.sign;
+        pack32.bits.exp = 0xff;
+        pack32.bits.frac = 1;
+        return pack32.fp32;
+    }
+
+    return pack32.fp32;
+}
+
 bool is_match_buffer(const struct data_buffer* lhs, const struct data_buffer* rhs, const float eps)
 {
     if (lhs->dim_num != rhs->dim_num || lhs->size != rhs->size || lhs->dtype != rhs->dtype) return false;
@@ -144,8 +207,8 @@ bool is_match_buffer(const struct data_buffer* lhs, const struct data_buffer* rh
         if (lhs->scale != rhs->scale || lhs->zero_point != rhs->zero_point) return false; \
         for (int i = 0; i < lhs->size / dtype_to_size(lhs->dtype); ++i)                   \
         {                                                                                 \
-            const int a = p1[i];                                                          \
-            const int b = p2[i];                                                          \
+            const int a = (int)p1[i];                                                     \
+            const int b = (int)p2[i];                                                     \
             if (abs(a - b) != 0)                                                          \
             {                                                                             \
                 return false;                                                             \
@@ -187,7 +250,33 @@ bool is_match_buffer(const struct data_buffer* lhs, const struct data_buffer* rh
     {
         __compare(int32_t);
     }
+    else if (lhs->dtype == TENGINE_DT_INT16)
+    {
+        __compare(int16_t);
+    }
+    else if (lhs->dtype == TENGINE_DT_FP16)
+    {
+        const uint16_t* p1 = lhs->data;
+        const uint16_t* p2 = lhs->data;
+
+        for (int i = 0; i < lhs->size; ++i)
+        {
+            const uint16_t a = p1[i];
+            const uint16_t b = p2[i];
+            const float fpa = __fp16_to_fp32(a);
+            const float fpb = __fp16_to_fp32(b);
+
+            if (fabs(fpa - fpb) > eps)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
 #undef __compare
+
+    return false;
 }
 
 int fill_random_tensor(tensor_t v)
@@ -921,12 +1010,9 @@ graph_t create_common_test_graph(const char* op, const char* test_node_name, con
 
         set_tensor_shape(tensor, input->dims, input->dim_num);
         set_tensor_buffer(tensor, input->data, input->size);
-        if (input->dtype != TENGINE_DT_FP16 && input->dtype != TENGINE_DT_FP32)
-        {
-            scale = input->scale;
-            zero_point = input->zero_point;
-            set_tensor_quant_param(tensor, &scale, &zero_point, 1);
-        }
+        scale = input->scale;
+        zero_point = input->zero_point;
+        set_tensor_quant_param(tensor, &scale, &zero_point, 1);
 
         if (set_node_output_tensor(input_node, i, tensor, TENSOR_TYPE_VAR))
         {
