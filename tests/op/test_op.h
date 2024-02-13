@@ -19,6 +19,7 @@
 #include "graph/subgraph.h"
 #include "graph/node.h"
 #include "graph/tensor.h"
+#include <assert.h>
 
 #define TENSOR_SHOW_LEADING_BLANK "    "
 #define TENSOR_FLOAT_EPSILON      0.0001f
@@ -81,8 +82,57 @@ int dtype_to_size(const int dtype)
     case TENGINE_DT_INT32:
         return sizeof(int32_t);
     default:
+        assert(0 && "Unsupported dtype");
         return -1;
     }
+}
+
+static int fill_random_data(void* p, size_t total_size, int dtype)
+{
+#define __fill(__dtype)                               \
+    do {                                              \
+        __dtype* data = p;                            \
+        const int n = total_size / sizeof(__dtype);   \
+        for (int i = 0; i < n; ++i)                   \
+        {                                             \
+            if (dtype == TENGINE_DT_UINT8)            \
+            {                                         \
+                data[i] = (__dtype)rand_int(0, 30);   \
+            }                                         \
+            else                                      \
+            {                                         \
+                data[i] = (__dtype)rand_int(-15, 15); \
+            }                                         \
+        }                                             \
+    } while (0);
+
+    if (dtype == TENGINE_DT_FP32)
+    {
+        float* data = p;
+        for (int i = 0; i < total_size / sizeof(float); ++i)
+        {
+            data[i] = random_float(-1.2, 1.2);
+        }
+        return 0;
+    }
+    else if (dtype == TENGINE_DT_INT8)
+    {
+        __fill(int8_t);
+        return 0;
+    }
+    else if (dtype == TENGINE_DT_UINT8)
+    {
+        __fill(uint8_t);
+        return 0;
+    }
+    else if (dtype == TENGINE_DT_INT32)
+    {
+        __fill(int32_t);
+        return 0;
+    }
+
+    assert(0 && "Unsupported dtype");
+    return -1;
 }
 
 struct data_buffer* create_data_buffer(const int* dims, const int dim_num, const int dtype)
@@ -112,6 +162,14 @@ struct data_buffer* create_data_buffer(const int* dims, const int dim_num, const
 
     buf->scale = random_float(0.1, 2.0) + 0.01;
     buf->zero_point = rand_int(-5, 5);
+
+    int ret = fill_random_data(buf->data, buf->size, buf->dtype);
+    if (ret != 0)
+    {
+        free(buf->data);
+        free(buf);
+        return NULL;
+    }
     return buf;
 }
 
@@ -259,7 +317,7 @@ bool is_match_buffer(const struct data_buffer* lhs, const struct data_buffer* rh
         const uint16_t* p1 = lhs->data;
         const uint16_t* p2 = lhs->data;
 
-        for (int i = 0; i < lhs->size; ++i)
+        for (int i = 0; i < lhs->size / sizeof(uint16_t); ++i)
         {
             const uint16_t a = p1[i];
             const uint16_t b = p2[i];
@@ -277,54 +335,6 @@ bool is_match_buffer(const struct data_buffer* lhs, const struct data_buffer* rh
 #undef __compare
 
     return false;
-}
-
-int fill_random_tensor(tensor_t v)
-{
-#define __fill(__dtype)                                            \
-    do {                                                           \
-        __dtype* p = get_tensor_buffer(v);                         \
-        const int n = get_tensor_buffer_size(v) / sizeof(__dtype); \
-        for (int i = 0; i < n; ++i)                                \
-        {                                                          \
-            if (dtype == TENGINE_DT_UINT8)                         \
-            {                                                      \
-                p[i] = (__dtype)rand_int(0, 30);                   \
-            }                                                      \
-            else                                                   \
-            {                                                      \
-                p[i] = (__dtype)rand_int(-15, 15);                 \
-            }                                                      \
-        }                                                          \
-    } while (0);
-
-    const int dtype = get_tensor_data_type(v);
-    if (dtype == TENGINE_DT_FP32)
-    {
-        const int n = get_tensor_buffer_size(v);
-        float* data = get_tensor_buffer(v);
-        for (int i = 0; i < n / sizeof(float); ++i)
-        {
-            data[i] = random_float(-1.2, 1.2);
-        }
-        return 0;
-    }
-    else if (dtype == TENGINE_DT_INT8)
-    {
-        __fill(int8_t);
-        return 0;
-    }
-    else if (dtype == TENGINE_DT_UINT8)
-    {
-        __fill(uint8_t);
-        return 0;
-    }
-    else if (dtype == TENGINE_DT_INT32)
-    {
-        __fill(int32_t);
-        return 0;
-    }
-    return -1;
 }
 
 typedef int (*node_setup_hook_fn)(graph_t graph, const char* test_node_name, const char* op, const char* input_name, int data_type, int input_num, int output_num);
@@ -920,7 +930,7 @@ int test_graph_run(graph_t graph)
         return -1;
     }
 
-    dump_graph(graph);
+    // dump_graph(graph);
 
     if (0 != run_graph(graph, 1))
     {
@@ -1067,33 +1077,36 @@ graph_t create_common_test_graph(const char* op, const char* test_node_name, con
     return graph;
 }
 
-//inputs: vector<struct data_buffer>
-int create_common_op_test_case(const char* op, const void* params, const size_t param_size, vector_t* inputs, int output_num, int data_type, int layout, const float eps)
+vector_t* create_and_forward_test_graph(const char* op, const void* params, const size_t param_size, vector_t* inputs, int output_num, int data_type, int layout)
 {
-    int ret = test_graph_init();
-    if (ret)
-    {
-        fprintf(stderr, "init test graph failed: %d\n", ret);
-        return ret;
-    }
-
+    int ret = 0;
+    vector_t* outputs_ref = create_vector(sizeof(struct data_buffer*), free_data_buffer_in_vector);
     graph_t graph_ref = create_common_test_graph(op, "test_node", params, param_size, inputs, output_num, data_type, layout);
 
-    vector_t* outputs_ref = create_vector(sizeof(struct data_buffer*), free_data_buffer_in_vector);
-
-    for (int i = 0; i < get_graph_input_node_number(graph_ref); ++i)
+    if (!outputs_ref)
     {
-        node_t input_node = get_graph_input_node(graph_ref, i);
-        for (int t = 0; t < get_node_output_number(input_node); ++t)
-        {
-            tensor_t input_tensor = get_graph_input_tensor(graph_ref, i, t);
-            fill_random_tensor(input_tensor);
-        }
+        ret = -1;
+        goto out;
     }
 
-    setenv("TG_DEBUG_REF", "1", 1);
+    if (!graph_ref)
+    {
+        goto failed;
+    }
 
-    if ((ret = test_graph_run(graph_ref)) < 0)
+    struct options opt;
+    opt.num_thread = 1;
+    opt.cluster = TENGINE_CLUSTER_ALL;
+    opt.precision = TENGINE_MODE_FP32;
+    opt.affinity = 255;
+
+    if ((ret = prerun_graph_multithread(graph_ref, opt)) != 0)
+    {
+        fprintf(stderr, "prerun graph failed: %d\n", ret);
+        goto failed;
+    }
+
+    if ((ret = run_graph(graph_ref, 1)) < 0)
     {
         fprintf(stderr, "run graph failed: %d\n", ret);
         goto out;
@@ -1109,28 +1122,55 @@ int create_common_op_test_case(const char* op, const void* params, const size_t 
             push_vector_data(outputs_ref, &data);
         }
     }
-    test_graph_release(graph_ref);
 
-    setenv("TG_DEBUG_REF", "0", 1);
+    if ((ret = postrun_graph(graph_ref)))
+    {
+        goto failed;
+    }
 
-    graph_t graph = create_common_test_graph(op, "test_node", params, param_size, inputs, output_num, data_type, layout);
-    vector_t* outputs = create_vector(sizeof(struct data_buffer*), free_data_buffer_in_vector);
-    ret = test_graph_run(graph);
+    goto out;
+
+failed:
+    release_vector(outputs_ref);
+    outputs_ref = NULL;
+
+out:
+    if (graph_ref)
+    {
+        destroy_graph(graph_ref);
+    }
+    return outputs_ref;
+}
+
+//inputs: vector<struct data_buffer>
+int create_common_op_test_case(const char* op, const void* params, const size_t param_size, vector_t* inputs, int output_num, int data_type, int layout, const float eps)
+{
+    int ret = init_tengine();
     if (ret)
     {
-        fprintf(stderr, "run graph failed: %d\n", ret);
+        fprintf(stderr, "init tengine failed: %d\n", ret);
+        return ret;
+    }
+
+    setenv("TG_DEBUG_REF", "1", 1);
+    vector_t* outputs_ref = create_and_forward_test_graph(op, params, param_size, inputs, 1, data_type, layout);
+    if (!outputs_ref)
+    {
+        return -1;
+    }
+
+    setenv("TG_DEBUG_REF", "0", 1);
+    vector_t* outputs = create_and_forward_test_graph(op, params, param_size, inputs, 1, data_type, layout);
+    if (!outputs)
+    {
+        ret = -1;
         goto out;
     }
 
-    for (int i = 0; i < get_graph_output_node_number(graph); ++i)
+    if (get_vector_num(outputs) != get_vector_num(outputs_ref))
     {
-        node_t output_node = get_graph_output_node(graph, i);
-        for (int t = 0; t < get_node_output_number(output_node); ++t)
-        {
-            tensor_t output_tensor = get_graph_output_tensor(graph, i, t);
-            struct data_buffer* data = create_data_buffer_from_tensor(output_tensor);
-            push_vector_data(outputs, &data);
-        }
+        fprintf(stderr, "output num is not equal to ref. test = %d, ref = %d\n", get_vector_num(outputs), get_vector_num(outputs_ref));
+        goto out;
     }
 
     for (int i = 0; i < get_vector_num(outputs_ref); ++i)
@@ -1147,9 +1187,8 @@ int create_common_op_test_case(const char* op, const void* params, const size_t 
     }
 
 out:
-    release_vector(outputs_ref);
-    release_vector(outputs);
-    test_graph_release(graph);
+    if (outputs_ref) release_vector(outputs_ref);
+    if (outputs) release_vector(outputs);
     release_tengine();
     return ret;
 }
