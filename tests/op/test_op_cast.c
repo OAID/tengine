@@ -33,6 +33,7 @@ int main(void)
     time_t tim = time(NULL);
     srand((unsigned int)tim);
     return test_cast_op(TENGINE_DT_FP32, TENGINE_DT_FP16)
+           || test_cast_op(TENGINE_DT_FP16, TENGINE_DT_FP32)
            || test_cast_op(TENGINE_DT_FP32, TENGINE_DT_UINT8)
            || test_cast_op(TENGINE_DT_UINT8, TENGINE_DT_FP32)
            || test_cast_op(TENGINE_DT_FP32, TENGINE_DT_FP32)
