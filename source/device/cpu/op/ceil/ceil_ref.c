@@ -77,7 +77,7 @@ int ref_ceil_uint8(struct tensor* input_tensor, struct tensor* output_tensor, in
 #pragma omp parallel for num_threads(num_thread)
     for (int i = 0; i < total_size; i++)
     {
-        input_data[i] = ceil(out_data[i]);
+        out_data[i] = ceil(input_data[i]);
     }
 
     /* quant */
