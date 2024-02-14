@@ -28,6 +28,7 @@ tengine_op_test(test_op_broadmul)
 tengine_op_test(test_op_cast)
 tengine_op_test(test_op_ceil)
 tengine_op_test(test_op_clip)
+tengine_op_test(test_op_comparison)
 
 if (TENGINE_ENABLE_OPENDLA)
     function (tengine_opendla_op_test name file)
