@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <time.h>
 #include <stddef.h>
+#include <math.h>
 
 //#include "float.h"
 #include "api/c_api.h"
@@ -23,7 +24,143 @@
 
 #define TENSOR_SHOW_LEADING_BLANK "    "
 #define TENSOR_FLOAT_EPSILON      0.0001f
+typedef union
+{
+    struct
+    {
+        uint16_t frac : 10;
+        uint16_t exp : 5;
+        uint16_t sign : 1;
+    } __attribute__((packed)) bits;
 
+    uint16_t u16;
+} __attribute__((packed)) __pack16_t;
+
+typedef union
+{
+    struct
+    {
+        uint32_t frac : 23;
+        uint32_t exp : 8;
+        uint32_t sign : 1;
+    } __attribute__((packed)) bits;
+    uint32_t u32;
+    float fp32;
+} __attribute__((packed)) __pack32_t;
+
+static uint16_t __fp32_to_fp16(float fp32)
+{
+    const float fp32_abs = fabs(fp32);
+    __pack32_t pack32 = {.fp32 = fp32};
+    __pack16_t pack16 = {.u16 = 0};
+
+    if (pack32.bits.exp == 0 && pack32.bits.frac == 0)
+    {
+        pack16.bits.sign = pack32.bits.sign;
+        pack16.bits.frac = 0;
+        pack16.bits.exp = 0;
+        return pack16.u16;
+    }
+
+    // nan
+    if (isnan(fp32))
+    {
+        pack16.bits.exp = 0x1f;
+        pack16.bits.frac = 1;
+        pack16.bits.sign = pack32.bits.sign;
+        return pack16.u16;
+    }
+
+    // inf
+    if (isinf(fp32))
+    {
+        pack16.bits.exp = 0x1f;
+        pack16.bits.frac = 0;
+        pack16.bits.sign = pack32.bits.sign;
+        return pack16.u16;
+    }
+
+    // upper to fp16 max norm
+    if (fp32_abs > 65504.0f)
+    {
+        pack16.bits.sign = pack32.bits.sign;
+        pack16.bits.exp = 0x1e;
+        pack16.bits.frac = 1023;
+        return pack16.u16;
+    }
+
+    // lower than min subnormalnorm
+    if (fp32_abs < 5.96046448e-8f)
+    {
+        return .0f;
+    }
+
+    // lower than fp16 min norm: fp32 normalized to fp16 subnormal
+    if (fp32_abs < 6.103515625e-5)
+    {
+        pack16.bits.sign = pack32.bits.sign;
+        pack16.bits.exp = pack32.bits.exp - 127 + 15;
+        pack16.bits.frac = pack32.bits.frac >> 13;
+        return pack16.u16;
+    }
+
+    // fp32 normalized to fp16 normalzied
+    if (pack32.bits.exp != 0 && pack32.bits.frac != 0)
+    {
+        pack16.bits.sign = pack32.bits.sign;
+        pack16.bits.exp = pack32.bits.exp - 127 + 15;
+        pack16.bits.frac = pack32.bits.frac >> 13;
+        return pack16.u16;
+    }
+
+    return pack16.u16;
+}
+
+static float __fp16_to_fp32(uint16_t const value)
+{
+    __pack16_t pack16 = {.u16 = value};
+    __pack32_t pack32 = {.u32 = 0};
+
+    if (pack16.bits.exp == 0 && pack16.bits.frac == 0)
+    {
+        return pack16.bits.sign == 0 ? .0f : -.0f;
+    }
+
+    // normalized case
+    if (pack16.bits.exp != 0xff && pack16.bits.exp != 0)
+    {
+        pack32.bits.sign = pack16.bits.sign;
+        pack32.bits.exp = pack16.bits.exp - 15 + 127;
+        pack32.bits.frac = pack16.bits.frac << 13;
+        return pack32.fp32;
+    }
+
+    // subnormal case
+    // 5.96046448e-8f = 2**-14 * 1/1024.0
+    if (pack16.bits.exp == 0 && pack16.bits.frac != 0)
+    {
+        const float alpha = pack16.bits.sign == 0 ? 5.96046448e-8f : -5.96046448e-8f;
+        return pack16.bits.frac * alpha;
+    }
+
+    if (pack16.bits.exp == 0x1f && pack16.bits.frac == 0)
+    {
+        pack32.bits.sign = pack16.bits.sign;
+        pack32.bits.exp = 0xff;
+        pack32.bits.frac = 0;
+        return pack32.fp32;
+    }
+
+    if (pack16.bits.exp == 0x1f && pack16.bits.frac != 0)
+    {
+        pack32.bits.sign = pack16.bits.sign;
+        pack32.bits.exp = 0xff;
+        pack32.bits.frac = 1;
+        return pack32.fp32;
+    }
+
+    return pack32.fp32;
+}
 struct data_buffer
 {
     void* data;
@@ -115,6 +252,15 @@ static int fill_random_data(void* p, size_t total_size, int dtype)
         }
         return 0;
     }
+    else if (dtype == TENGINE_DT_FP16)
+    {
+        uint16_t* data = p;
+        for (int i = 0; i < total_size / sizeof(uint16_t); ++i)
+        {
+            data[i] = __fp32_to_fp16(random_float(-1.2, 1.2));
+        }
+		return 0;
+    }
     else if (dtype == TENGINE_DT_INT8)
     {
         __fill(int8_t);
@@ -183,75 +329,6 @@ void free_data_buffer_in_vector(void* p)
     struct data_buffer* buf = *(struct data_buffer**)p;
     free(buf->data);
     free(buf);
-}
-
-static float __fp16_to_fp32(uint16_t const value)
-{
-    union
-    {
-        struct
-        {
-            uint16_t frac : 10;
-            uint16_t exp : 5;
-            uint16_t sign : 1;
-        } __attribute__((packed)) bits;
-
-        uint16_t u16;
-    } __attribute__((packed)) pack16 = {.u16 = value};
-
-    union
-    {
-        struct
-        {
-            uint32_t frac : 23;
-            uint32_t exp : 8;
-            uint32_t sign : 1;
-        } __attribute__((packed)) bits;
-        uint32_t u32;
-        float fp32;
-    } __attribute__((packed)) pack32 = {.u32 = 0};
-
-    if (pack16.bits.exp == 0 && pack16.bits.frac == 0)
-    {
-        pack32.u32 = 0;
-        pack32.bits.sign = pack16.bits.sign;
-        return pack32.fp32;
-    }
-
-    // normalized case
-    if (pack16.bits.exp != 0xff && pack16.bits.exp != 0)
-    {
-        pack32.bits.sign = pack16.bits.sign;
-        pack32.bits.exp = pack16.bits.exp - 15 + 127;
-        pack32.bits.frac = pack16.bits.frac << 13;
-        return pack32.fp32;
-    }
-
-    // subnormal case
-    // 5.96046448e-8f = 2**-14 * 1/1024.0
-    if (pack16.bits.exp == 0 && pack16.bits.frac != 0)
-    {
-        const float alpha = pack16.bits.sign == 0 ? 5.96046448e-8f : -5.96046448e-8f;
-        return pack16.bits.frac * alpha;
-    }
-
-    if (pack16.bits.exp == 0x1f && pack16.bits.frac == 0)
-    {
-        pack32.bits.sign = pack16.bits.sign;
-        pack32.bits.exp = 0xff;
-        pack32.bits.frac = 0;
-        return pack32.fp32;
-    }
-
-    if (pack16.bits.exp == 0x1f && pack16.bits.frac != 0)
-    {
-        pack32.bits.sign = pack16.bits.sign;
-        pack32.bits.exp = 0xff;
-        pack32.bits.frac = 1;
-        return pack32.fp32;
-    }
-
-    return pack32.fp32;
 }
 
 bool is_match_buffer(const struct data_buffer* lhs, const struct data_buffer* rhs, const float eps)
