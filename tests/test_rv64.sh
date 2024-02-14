@@ -12,6 +12,7 @@ test_models=(
 "${QEMU_CMD} ./tests/test_op_argmin"
 "${QEMU_CMD} ./tests/test_op_batchnorm"
 "${QEMU_CMD} ./tests/test_op_batchtospacend"
+# "${QEMU_CMD} ./tests/test_op_broadmul"
 "${QEMU_CMD} ./tests/test_op_bias"
 "${QEMU_CMD} ./tests/test_op_cast"
 "${QEMU_CMD} ./tests/test_op_ceil"
