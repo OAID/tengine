@@ -34,7 +34,7 @@ static void interleave_kernel(float* kernel, float* kernel_interleaved, int kern
     }
 
     // last 7 kernel
-    for (k = 0; k < 7; k++)
+    for (k = 0; i + k < kernel_chan; k++)
         cur_kernel[k] = kernel + kernel_size * (i + k);
 
     if ((kernel_chan & 0x7) == 7)
@@ -278,7 +278,7 @@ int conv_hcl_run_rv64(struct node* ir_node, struct tensor* input_tensor, struct 
 
                     int col_end3 = (out_xy & 7);
 
-                    for (int i = 0; i < 8; i++)
+                    for (int i = 0; i < n; i++)
                     {
                         int j = 0;
                         for (; j < (col_end3); j++)

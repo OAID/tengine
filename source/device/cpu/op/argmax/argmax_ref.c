@@ -77,7 +77,7 @@ static int ref_argmax_fp32(float* input, int* output, const struct argmax_op_par
     return 0;
 }
 
-static int ref_argmax_uint8(uint8_t* input, int* output, const struct argmax_op_param* param)
+static int ref_argmax_uint8(uint8_t* input, uint8_t* output, const struct argmax_op_param* param)
 {
     uint8_t max_value;
     int max_value_index;
@@ -175,13 +175,10 @@ static int run(struct node_ops* node_ops, struct exec_node* exec_node, struct ex
 
     struct argmax_op_param* argmax_op_param = (struct argmax_op_param*)exec_node->ops_priv;
 
-    TLOG_ERR("output_tensor->elem_num:%d\n", output_tensor->elem_num);
-    TLOG_ERR("output_tensor->elem_size:%d\n", output_tensor->elem_size);
-
     if (input_tensor->data_type == TENGINE_DT_FP32)
         ref_argmax_fp32((float*)in_data, (int*)out_data, argmax_op_param);
     else if (input_tensor->data_type == TENGINE_DT_UINT8)
-        ref_argmax_uint8((uint8_t*)in_data, (int*)out_data, argmax_op_param);
+        ref_argmax_uint8((uint8_t*)in_data, (uint8_t*)out_data, argmax_op_param);
 
     return 0;
 }
