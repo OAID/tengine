@@ -110,7 +110,6 @@ void im2col_tile8(float* input, float* col, int in_c, int in_w, int in_h, int k_
         for (; col_i < (out_xy & -8); col_i += 8)
         {
             float* cur_col = col + col_i * kernel_size;
-            const float* cur_input = input + col_i;
 
             int imy0 = col_i / out_w;
             int imy7 = (col_i + 7) / out_w;
@@ -125,6 +124,7 @@ void im2col_tile8(float* input, float* col, int in_c, int in_w, int in_h, int k_
             // is pad ?
             if (imy0 == imy7 && (is_pad0 || (imx_start >= 0 && imx_end < in_w && imy_start >= 0 && imy_end < in_h)))
             {
+                const float* cur_input = input + imy_start * in_w + imx_start;
                 im2col_fp32_1x1_tile8(cur_input, in_xy, in_c, cur_col);
             }
             else
@@ -154,7 +154,7 @@ void im2col_tile8(float* input, float* col, int in_c, int in_w, int in_h, int k_
             int imx_end = imx7 * s_w - pad_w0;
             int imy_start = imy0 * s_h - pad_h0;
             int imy_end = imy7 * s_h - pad_h0;
-            if ((imy0 == imy7) && (is_pad0 || (imx_start >= 0 && imx_end < in_w - 8 && imy_start >= 0 && imy_end + 2 < in_h)))
+            if ((imy0 == imy7) && (is_pad0 || (imx_start >= 0 && imx_end < in_w - 2 && imy_start >= 0 && imy_end + 2 < in_h)))
             {
                 float* cur_input = input + imy_start * in_w + imx_start;
                 im2col_fp32_3x3_tile8_c(cur_input, in_w, in_h, in_c, cur_col, s_w);

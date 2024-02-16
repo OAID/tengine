@@ -1,5 +1,6 @@
 #include "vsetvl_rvv.h"
 
+// FIXME: optimize vectorize loop
 void im2col_fp32_1x1_tile8(const float* input, const int input_xy, const int input_channels, float* col)
 {
     vsetvl_e32_m2();
