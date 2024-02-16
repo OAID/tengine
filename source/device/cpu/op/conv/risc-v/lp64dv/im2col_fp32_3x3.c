@@ -1,6 +1,6 @@
 #include "vsetvl_rvv.h"
 
-void im2col_fp32_3x3_tile8_c(const float* input, const int input_x, const int input_y, const int input_channels, float* col, const int stride)
+void im2col_fp32_3x3(const float* input, const int input_x, const int input_y, const int input_channels, float* col, const int stride)
 {
     vsetvl_e32_m2();
     const int in_xy = input_x * input_y;

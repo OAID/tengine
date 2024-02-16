@@ -199,7 +199,8 @@ static struct node_ops argmax_node_ops = {.prerun = prerun,
                                           .postrun = postrun,
                                           .init_node = init_node,
                                           .release_node = release_node,
-                                          .score = score};
+                                          .score = score,
+                                          .is_ref_op = true};
 
 int register_argmax_ref_op()
 {

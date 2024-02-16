@@ -142,7 +142,8 @@ static struct node_ops swap_axis_node_ops = {.prerun = NULL,
                                              .postrun = NULL,
                                              .init_node = init_node,
                                              .release_node = release_node,
-                                             .score = score};
+                                             .score = score,
+                                             .is_ref_op = true};
 
 int register_swap_axis_ref_op()
 {

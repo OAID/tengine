@@ -28,6 +28,7 @@
 #include "cpu_define.h"
 
 #include <stdint.h>
+#include <stdbool.h>
 
 struct node;
 struct node_ops;
@@ -79,6 +80,9 @@ struct node_ops
 
     /* score */
     int (*score)(struct node_ops*, struct exec_graph*, struct node*);
+
+    /* is ref op */
+    bool is_ref_op;
 };
 
 int init_exec_node(struct exec_graph* exec_graph, struct exec_node* exec_node, struct node* ir_node, struct node_ops* node_ops);
