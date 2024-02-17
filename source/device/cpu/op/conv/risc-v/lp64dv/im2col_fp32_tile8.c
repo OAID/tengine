@@ -153,7 +153,7 @@ void im2col(float* input, float* col, int in_c, int in_w, int in_h, int k_w, int
             int imx_end = imx7 * s_w - pad_w0;
             int imy_start = imy0 * s_h - pad_h0;
             int imy_end = imy7 * s_h - pad_h0;
-            if ((imy0 == imy7) && (is_pad0 || (imx_start >= 0 && imx_end < in_w - 2 && imy_start >= 0 && imy_end + 2 < in_h)))
+            if ((imy0 == imy7) && (is_pad0 || (imx_start >= 0 && imx_end < in_w - 8 && imy_start >= 0 && imy_end + 2 < in_h)))
             {
                 float* cur_input = input + imy_start * in_w + imx_start;
                 im2col_fp32_3x3(cur_input, in_w, in_h, in_c, cur_col, s_w);
