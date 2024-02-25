@@ -11,10 +11,15 @@ steps:
     commands:
       - PATH=$PATH:/home/riscv/bin cmake -DCMAKE_TOOLCHAIN_FILE=toolchains/rv64-c906.toolchain.cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_BUILD_TYPE=RELEASE -DTENGINE_BUILD_TESTS=ON -DTENGINE_COVERAGE=ON -B build
       - PATH=$PATH:/home/riscv/bin cmake --build build -- -j`cat /proc/cpuinfo | grep 'processor' | wc -l` VERBOSE=1 
-  - name: test
+  - name: test ops 
     image: ubuntu20.04:qemu
     commands:
-      - apt install lcov -y
+      - cd build
+      - export QEMU_CMD='qemu-riscv64 -cpu rv64,v=true -E TG_DEBUG_TIME=1 -L /home/riscv/sysroot'
+      - ../tests/test_rv64_ops.sh
+  - name: test models 
+    image: ubuntu20.04:qemu
+    commands:
       - cd build
       - wget -nv http://192.168.3.19:9999/tengine_model_zoo/ci_data/models.tar.gz
       - wget -nv http://192.168.3.19:9999/tengine_model_zoo/ci_data/images.tar.gz
@@ -24,7 +29,15 @@ steps:
       - tar zxvf images.tar.gz -C images
       - tar zxvf data_x86.tar.gz -C data
       - export QEMU_CMD='qemu-riscv64 -cpu rv64,v=true -E TG_DEBUG_TIME=1 -L /home/riscv/sysroot'
-      - ../tests/test_rv64.sh
+      - ../tests/test_rv64_models.sh
+    when:
+      branch:
+      - master
+  - name: code coverage 
+    image: ubuntu20.04:qemu
+    commands:
+      - cd build
+      - apt install lcov -y
       - lcov --gcov-tool /home/riscv/bin/riscv64-unknown-linux-gnu-gcov --capture --directory . --output-file $${DRONE_REPO_NAME}.info
       - genhtml --branch-coverage -o ../codecov $${DRONE_REPO_NAME}.info 
   - name: scp files
