@@ -43,7 +43,7 @@ void comp_equal(int input_hw, int input_hw_1, int input_count4, int input1_count
     }
     else if (input_count4 == 1)
     {
-        for (int i = 0; i < input_count4; ++i)
+        for (int i = 0; i < input1_count4; ++i)
         {
             *output++ = (input0[0] == input1[i]);
         }
@@ -107,7 +107,7 @@ void comp_nequal(int input_hw, int input_hw_1, int input_count4, int input1_coun
     }
     else if (input_count4 == 1)
     {
-        for (int i = 0; i < input_count4; ++i)
+        for (int i = 0; i < input1_count4; ++i)
         {
             *output++ = (input0[0] != input1[i]);
         }
@@ -171,7 +171,7 @@ void comp_less(int input_hw, int input_hw_1, int input_count4, int input1_count4
     }
     else if (input_count4 == 1)
     {
-        for (int i = 0; i < input_count4; ++i)
+        for (int i = 0; i < input1_count4; ++i)
         {
             *output++ = (input0[0] < input1[i]);
         }
@@ -235,7 +235,7 @@ void comp_lesse(int input_hw, int input_hw_1, int input_count4, int input1_count
     }
     else if (input_count4 == 1)
     {
-        for (int i = 0; i < input_count4; ++i)
+        for (int i = 0; i < input1_count4; ++i)
         {
             *output++ = (input0[0] <= input1[i]);
         }
@@ -299,7 +299,7 @@ void comp_greater(int input_hw, int input_hw_1, int input_count4, int input1_cou
     }
     else if (input_count4 == 1)
     {
-        for (int i = 0; i < input_count4; ++i)
+        for (int i = 0; i < input1_count4; ++i)
         {
             *output++ = (input0[0] > input1[i]);
         }
@@ -363,7 +363,7 @@ void comp_greatere(int input_hw, int input_hw_1, int input_count4, int input1_co
     }
     else if (input_count4 == 1)
     {
-        for (int i = 0; i < input_count4; ++i)
+        for (int i = 0; i < input1_count4; ++i)
         {
             *output++ = (input0[0] >= input1[i]);
         }
