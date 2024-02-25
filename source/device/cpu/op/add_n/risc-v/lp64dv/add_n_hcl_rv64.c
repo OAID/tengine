@@ -1,30 +1,7 @@
-/*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * License); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * AS IS BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
- */
-
-/*
- * Copyright (c) 2021, OPEN AI LAB
- * Author: xlchen@openailab.com
- */
-
 #include "graph/tensor.h"
 #include "graph/node.h"
 #include "graph/graph.h"
+#include "op/conv/risc-v/lp64dv/vsetvl_rvv.h"
 #include "utility/sys_port.h"
 #include "utility/log.h"
 #include "device/cpu/cpu_node.h"
@@ -42,7 +19,63 @@ struct add_n_op_param
 static int ref_add_n_fp32(const float** input, float* output, int size, const struct add_n_op_param* param)
 {
     int in_num = param->in_num;
-    for (int i = 0; i < size; ++i)
+    vsetvl_e32_m2();
+
+    float* output_data = output;
+    int i = 0;
+    for (; i < (size & -8); i += 8)
+    {
+        asm("vmv.v.x  v0, x0;\n");
+        int n = 0;
+        for (; n < (in_num & -8); n += 8)
+        {
+            const float** inputs = input + n;
+            const float* in0 = inputs[0] + i;
+            const float* in1 = inputs[1] + i;
+            const float* in2 = inputs[2] + i;
+            const float* in3 = inputs[3] + i;
+            const float* in4 = inputs[4] + i;
+            const float* in5 = inputs[5] + i;
+            const float* in6 = inputs[6] + i;
+            const float* in7 = inputs[7] + i;
+
+            asm("vle32.v    v2,  (%0);\n"
+                "vle32.v    v4,  (%1);\n"
+                "vle32.v    v6,  (%2);\n"
+                "vle32.v    v8,  (%3);\n"
+                "vle32.v    v10, (%4);\n"
+                "vle32.v    v12, (%5);\n"
+                "vle32.v    v14, (%6);\n"
+                "vle32.v    v16, (%7);\n"
+                "vfadd.vv   v0, v0, v2;\n"
+                "vfadd.vv   v0, v0, v4;\n"
+                "vfadd.vv   v0, v0, v6;\n"
+                "vfadd.vv   v0, v0, v8;\n"
+                "vfadd.vv   v0, v0, v10;\n"
+                "vfadd.vv   v0, v0, v12;\n"
+                "vfadd.vv   v0, v0, v14;\n"
+                "vfadd.vv   v0, v0, v16;\n"
+                :
+                : "r"(in0), "r"(in1), "r"(in2), "r"(in3), "r"(in4), "r"(in5), "r"(in6), "r"(in7));
+        }
+
+        for (; n < in_num; n += 1)
+        {
+            const float* in0 = input[n] + i;
+            asm("vle32.v    v2, (%0);\n"
+                "vfadd.vv   v0, v0, v2;\n"
+                :
+                : "r"(in0));
+        }
+
+        asm("vse32.v    v0, (%0);\n"
+            :
+            : "r"(output_data)
+            : "memory");
+        output_data += 8;
+    }
+
+    for (; i < size; i += 1)
     {
         output[i] = input[0][i];
         for (int n = 1; n < in_num; n++)
@@ -50,6 +83,7 @@ static int ref_add_n_fp32(const float** input, float* output, int size, const st
             output[i] += input[n][i];
         }
     }
+
     return 0;
 }
 
@@ -57,7 +91,6 @@ static int init_node(struct node_ops* node_ops, struct exec_node* exec_node, str
 {
     struct add_n_op_param* add_n_op_param = (struct add_n_op_param*)sys_malloc(sizeof(struct add_n_op_param));
     exec_node->ops_priv = add_n_op_param;
-
     return 0;
 }
 
@@ -126,7 +159,7 @@ static int score(struct node_ops* node_ops, struct exec_graph* exec_graph, struc
     if (input_tensor->data_type != TENGINE_DT_FP32 || input_tensor->layout != TENGINE_LAYOUT_NCHW)
         return 0;
 
-    return OPS_SCORE_CANDO;
+    return OPS_SCORE_PREFER;
 }
 
 static struct node_ops add_n_node_ops = {
@@ -139,12 +172,12 @@ static struct node_ops add_n_node_ops = {
     .score = score,
 };
 
-int register_add_n_ref_op()
+int register_add_n_hcl_rv64_op()
 {
     return register_builtin_node_ops(OP_ADD_N, &add_n_node_ops);
 }
 
-int unregister_add_n_ref_op()
+int unregister_add_n_hcl_rv64_op()
 {
     return unregister_builtin_node_ops(OP_ADD_N, &add_n_node_ops);
 }

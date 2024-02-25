@@ -7,7 +7,9 @@
 #include "device/cpu/cpu_graph.h"
 #include "device/cpu/cpu_node.h"
 #include "device/cpu/cpu_module.h"
+#include "utility/sys_port.h"
 #include <stdio.h>
+#include <string.h>
 
 extern int conv_dw_packn_kernel_run(const ir_node_t* ir_node, const ir_tensor_t* input_tensor, const ir_tensor_t* filter_tensor, const ir_tensor_t* bias_tensor, ir_tensor_t* output_tensor, const struct conv_priv_info* priv_info, const struct conv_param* params, const int num_thread, const int cpu_affinity);
 extern int conv_dw_packn_kernel_prerun(const ir_node_t* ir_node, const ir_tensor_t* input_tensor, const ir_tensor_t* filter_tensor, struct conv_priv_info* info, struct conv_param* params);
