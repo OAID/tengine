@@ -93,7 +93,7 @@ public:
     bool support_bf16_storage;
 
     bool one_blob_only;
-	bool support_inplace;
+    bool support_inplace;
 
 public:
     const GPUDevice* vkdev;

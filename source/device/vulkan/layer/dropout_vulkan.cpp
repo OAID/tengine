@@ -47,7 +47,7 @@ Dropout_vulkan::Dropout_vulkan(ir_graph_t* ir_graph, ir_node_t* ir_node, const G
     : Layer(vkdev)
 {
     one_blob_only = true;
-	support_inplace = true;
+    support_inplace = true;
     pipeline_dropout = 0;
     pipeline_dropout_pack4 = 0;
     pipeline_dropout_pack8 = 0;

@@ -47,7 +47,7 @@ Softmax_vulkan::Softmax_vulkan(ir_graph_t* ir_graph, ir_node_t* ir_node, const G
     : Layer(vkdev)
 {
     one_blob_only = true;
-	support_inplace = true;
+    support_inplace = true;
     pipeline_softmax_reduce_max = 0;
     pipeline_softmax_exp_sub_max = 0;
     pipeline_softmax_reduce_sum = 0;

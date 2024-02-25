@@ -392,5 +392,3 @@ void save_tensor(const char* fname, const float* data, const int* dims, const in
     fflush(fout);
     fclose(fout);
 }
-
-

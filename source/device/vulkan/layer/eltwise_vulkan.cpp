@@ -68,9 +68,9 @@ Eltwise_vulkan::Eltwise_vulkan(ir_graph_t* ir_graph, ir_node_t* ir_node, const G
     std::string name = output->name;
     tops.push_back(name);
 
-	output_c = output->dims[1];
-	output_h = output->dims[2];
-	output_w = output->dims[3];
+    output_c = output->dims[1];
+    output_h = output->dims[2];
+    output_w = output->dims[3];
 
     struct eltwise_param* param = (struct eltwise_param*)ir_node->op.param_mem;
     op_type = (param->type) / 2;

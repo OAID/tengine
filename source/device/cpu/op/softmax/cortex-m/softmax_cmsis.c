@@ -82,14 +82,15 @@ static int score(struct node_ops* node_ops, struct exec_graph* exec_graph, struc
     return OPS_SCORE_BEST;
 }
 
-static struct node_ops cmsis_node_ops = {.prerun = NULL,
-                                         .run = run,
-                                         .reshape = reshape,
-                                         .postrun = NULL,
-                                         .init_node = NULL,
-                                         .release_node = NULL,
-                                         .score = score,
-                                         .is_ref_op = false};
+static struct node_ops cmsis_node_ops = {
+    .prerun = NULL,
+    .run = run,
+    .reshape = reshape,
+    .postrun = NULL,
+    .init_node = NULL,
+    .release_node = NULL,
+    .score = score,
+};
 
 int register_softmax_cmsis_op()
 {
