@@ -14,7 +14,7 @@ steps:
   - name: test
     image: ubuntu20.04:qemu
     commands:
-      - apt install lcov -y
+      - apt update && apt install lcov -y
       - cd build
       - wget -nv http://192.168.3.19:9999/tengine_model_zoo/ci_data/models.tar.gz
       - wget -nv http://192.168.3.19:9999/tengine_model_zoo/ci_data/images.tar.gz
