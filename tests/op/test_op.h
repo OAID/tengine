@@ -259,7 +259,7 @@ static int fill_random_data(void* p, size_t total_size, int dtype)
         {
             data[i] = __fp32_to_fp16(random_float(-1.2, 1.2));
         }
-		return 0;
+        return 0;
     }
     else if (dtype == TENGINE_DT_INT8)
     {

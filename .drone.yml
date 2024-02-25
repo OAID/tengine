@@ -19,11 +19,14 @@ steps:
       - ../tests/test_rv64_ops.sh
   - name: test models 
     image: ubuntu20.04:qemu
+    environment:
+      DATA_SERVER_URL:
+        from_secret: DATA_SERVER_URL
     commands:
       - cd build
-      - wget -nv http://192.168.3.19:9999/tengine_model_zoo/ci_data/models.tar.gz
-      - wget -nv http://192.168.3.19:9999/tengine_model_zoo/ci_data/images.tar.gz
-      - wget -nv http://192.168.3.19:9999/tengine_model_zoo/ci_data/data_x86.tar.gz
+      - wget -nv $${DATA_SERVER_URL}/tengine_model_zoo/ci_data/models.tar.gz
+      - wget -nv $${DATA_SERVER_URL}/tengine_model_zoo/ci_data/images.tar.gz
+      - wget -nv $${DATA_SERVER_URL}/tengine_model_zoo/ci_data/data_x86.tar.gz
       - mkdir models images data
       - tar zxvf models.tar.gz -C models
       - tar zxvf images.tar.gz -C images
@@ -37,7 +40,7 @@ steps:
     image: ubuntu20.04:qemu
     commands:
       - cd build
-      - apt install lcov -y
+      - apt update && apt install lcov -y
       - lcov --gcov-tool /home/riscv/bin/riscv64-unknown-linux-gnu-gcov --capture --directory . --output-file $${DRONE_REPO_NAME}.info
       - genhtml --branch-coverage -o ../codecov $${DRONE_REPO_NAME}.info 
   - name: scp files

@@ -83,14 +83,15 @@ static int score(struct node_ops* node_ops, struct exec_graph* exec_graph, struc
     return 0;
 }
 
-static struct node_ops hcl_node_ops = {.prerun = prerun,
-                                       .run = run,
-                                       .reshape = NULL,
-                                       .postrun = NULL,
-                                       .init_node = init_node,
-                                       .release_node = release_node,
-                                       .score = score,
-                                       .is_ref_op = false};
+static struct node_ops hcl_node_ops = {
+    .prerun = prerun,
+    .run = run,
+    .reshape = NULL,
+    .postrun = NULL,
+    .init_node = init_node,
+    .release_node = release_node,
+    .score = score,
+};
 
 int register_tanh_hcl_arm_op()
 {

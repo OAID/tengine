@@ -192,7 +192,7 @@ static struct node_ops hcl_node_ops = {
     .init_node = init_node,
     .release_node = release_node,
     .score = score,
-    .is_ref_op = false};
+};
 
 int register_conv_hcl_rv64_op()
 {

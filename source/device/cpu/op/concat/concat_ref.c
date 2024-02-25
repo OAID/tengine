@@ -87,7 +87,7 @@ static struct node_ops hcl_node_ops = {
     .init_node = init_node,
     .release_node = release_node,
     .score = score,
-    .is_ref_op = true};
+};
 
 int register_concat_ref_op()
 {

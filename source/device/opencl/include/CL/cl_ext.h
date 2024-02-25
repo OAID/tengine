@@ -72,7 +72,7 @@ extern "C" {
  */
 #define cl_APPLE_SetMemObjectDestructor 1
 cl_int CL_API_ENTRY clSetMemObjectDestructorAPPLE(cl_mem /* memobj */,
-                                                  void (*/*pfn_notify*/)(cl_mem /* memobj */, void* /*user_data*/),
+                                                  void (* /*pfn_notify*/)(cl_mem /* memobj */, void* /*user_data*/),
                                                   void* /*user_data */) CL_EXT_SUFFIX__VERSION_1_0;
 
 /* Context Logging Functions
