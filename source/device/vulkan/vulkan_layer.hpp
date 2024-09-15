@@ -64,7 +64,7 @@ class Layer
 {
 public:
     // empty
-    Layer();
+    Layer(const GPUDevice* vkdev);
     // virtual destructor
     virtual ~Layer();
 
@@ -86,17 +86,14 @@ public:
     virtual int record_pipeline(const std::vector<VkTensor>& bottom_blobs, std::vector<VkTensor>& top_blobs, VkCompute& cmd, const Option& opt) const;
 
 public:
-    // support vulkan compute
-    bool support_vulkan;
-
     // accept input blob with packed storage
     bool support_packing;
 
     // accept bf16
     bool support_bf16_storage;
 
-    // shader image storage
-    bool support_image_storage;
+    bool one_blob_only;
+    bool support_inplace;
 
 public:
     const GPUDevice* vkdev;
@@ -104,8 +101,6 @@ public:
     std::vector<std::string> tops;
 
 public:
-    // layer name
-    std::string name;
     // Node* node;
     ir_graph_t* graph;
     ir_node_t* node;

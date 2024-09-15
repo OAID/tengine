@@ -1,7 +1,35 @@
-# generate tengine header file
-FILE (MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/tengine)
-FILE (COPY ${CMAKE_SOURCE_DIR}/source/api/c_api.h DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/tengine)
-FILE (COPY ${CMAKE_SOURCE_DIR}/source/api/c_api_ex.h DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/tengine)
+#generate tengine header file
+FILE(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/tengine)
+FILE(COPY ${CMAKE_SOURCE_DIR}/source/api/c_api.h DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/tengine)
+FILE(COPY ${CMAKE_SOURCE_DIR}/source/api/c_api_ex.h DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/tengine)
+
+function(tengine_op_test name)
+    file(GLOB TENGINE_UTIL_SOURCE_FILES      ${PROJECT_SOURCE_DIR}/tests/common/util/*.c)
+    add_executable(${name} "${CMAKE_CURRENT_SOURCE_DIR}/op/${name}.c" "${TENGINE_UTIL_SOURCE_FILES}")
+
+    target_link_libraries(${name} PUBLIC "${CMAKE_PROJECT_NAME}-static")
+
+    target_include_directories (${name} PRIVATE "${PROJECT_SOURCE_DIR}/source")
+    target_include_directories (${name} PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")
+    target_include_directories (${name} PRIVATE "${PROJECT_BINARY_DIR}")
+    target_include_directories (${name} PRIVATE "${PROJECT_BINARY_DIR}/source")
+    target_include_directories (${name} PRIVATE "${PROJECT_SOURCE_DIR}/tests/common")
+    target_include_directories (${name} PRIVATE "${PROJECT_SOURCE_DIR}/tests/common/util")
+
+endfunction()
+tengine_op_test(test_op_absval)
+tengine_op_test(test_op_add_n)
+tengine_op_test(test_op_argmax)
+tengine_op_test(test_op_argmin)
+tengine_op_test(test_op_batchnorm)
+tengine_op_test(test_op_batchtospacend)
+tengine_op_test(test_op_bias)
+tengine_op_test(test_op_broadmul)
+tengine_op_test(test_op_cast)
+tengine_op_test(test_op_ceil)
+tengine_op_test(test_op_clip)
+tengine_op_test(test_op_comparison)
+tengine_op_test(test_op_conv)
 
 if (TENGINE_ENABLE_OPENDLA)
     function (tengine_opendla_op_test name file)

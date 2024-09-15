@@ -41,9 +41,9 @@
 
 namespace TEngine {
 
-Layer::Layer()
+Layer::Layer(const GPUDevice* vkdev)
+    : vkdev(vkdev), one_blob_only(true), support_inplace(false)
 {
-    support_vulkan = false;
 }
 
 Layer::~Layer()

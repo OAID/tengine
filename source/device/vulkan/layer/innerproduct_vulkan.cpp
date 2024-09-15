@@ -39,32 +39,14 @@
 
 #include "innerproduct_vulkan.hpp"
 #include "../layer_shader_type.h"
+#include "vulkan_layer.hpp"
 
 namespace TEngine {
 
-InnerProduct_vulkan::InnerProduct_vulkan()
+InnerProduct_vulkan::InnerProduct_vulkan(ir_graph_t* ir_graph, ir_node_t* ir_node, const GPUDevice* vkdev)
+    : Layer(vkdev)
 {
-    support_vulkan = true;
-    support_image_storage = true;
-
-    flatten = 0;
-
-    pipeline_innerproduct = 0;
-    pipeline_innerproduct_pack4 = 0;
-    pipeline_innerproduct_pack1to4 = 0;
-    pipeline_innerproduct_pack4to1 = 0;
-    pipeline_innerproduct_pack8 = 0;
-    pipeline_innerproduct_pack1to8 = 0;
-    pipeline_innerproduct_pack4to8 = 0;
-    pipeline_innerproduct_pack8to4 = 0;
-    pipeline_innerproduct_pack8to1 = 0;
-}
-
-InnerProduct_vulkan::InnerProduct_vulkan(ir_graph_t* ir_graph, ir_node_t* ir_node)
-{
-    support_vulkan = true;
-    support_image_storage = false;
-
+    one_blob_only = true;
     flatten = 0;
 
     pipeline_innerproduct = 0;
@@ -148,13 +130,11 @@ int InnerProduct_vulkan::create_pipeline(const Option& _opt)
     if (out_shape.dims == 1) out_shape_packed = Tensor(out_shape.w / out_elempack, (void*)0, out_elemsize, out_elempack);
 
     {
-        support_image_storage = false;
         opt.use_image_storage = false;
     }
 
     {
-        flatten = new Flatten_vulkan();
-        flatten->vkdev = vkdev;
+        flatten = new Flatten_vulkan(vkdev);
 
         flatten->input_w = shape.w;
         flatten->input_h = shape.h;
@@ -346,11 +326,6 @@ int InnerProduct_vulkan::upload_model(VkTransfer& cmd, const Option& opt)
         }
     }
 
-    if (support_image_storage && opt.use_image_storage)
-    {
-        // cmd.record_upload(weight_data_packed, weight_data_gpu_image, opt);
-    }
-    else
     {
         cmd.record_upload(weight_data_packed, weight_data_gpu, opt);
     }
@@ -362,11 +337,6 @@ int InnerProduct_vulkan::upload_model(VkTransfer& cmd, const Option& opt)
         Tensor bias_data_packed;
         convert_packing(bias_data, bias_data_packed, out_elempack);
 
-        if (support_image_storage && opt.use_image_storage)
-        {
-            // cmd.record_upload(bias_data_packed, bias_data_gpu_image, opt);
-        }
-        else
         {
             cmd.record_upload(bias_data_packed, bias_data_gpu, opt);
         }

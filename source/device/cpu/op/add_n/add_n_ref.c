@@ -117,16 +117,27 @@ static int postrun(struct node_ops* node_ops, struct exec_node* exec_node, struc
 
 static int score(struct node_ops* node_ops, struct exec_graph* exec_graph, struct node* exec_node)
 {
-    return OPS_SCORE_BEST;
+    struct node* ir_node = exec_node;
+    struct graph* ir_graph = ir_node->graph;
+    struct tensor* input_tensor;
+
+    input_tensor = get_ir_graph_tensor(ir_graph, ir_node->input_tensors[0]);
+
+    if (input_tensor->data_type != TENGINE_DT_FP32 || input_tensor->layout != TENGINE_LAYOUT_NCHW)
+        return 0;
+
+    return OPS_SCORE_CANDO;
 }
 
-static struct node_ops add_n_node_ops = {.prerun = prerun,
-                                         .run = run,
-                                         .reshape = NULL,
-                                         .postrun = postrun,
-                                         .init_node = init_node,
-                                         .release_node = release_node,
-                                         .score = score};
+static struct node_ops add_n_node_ops = {
+    .prerun = prerun,
+    .run = run,
+    .reshape = NULL,
+    .postrun = postrun,
+    .init_node = init_node,
+    .release_node = release_node,
+    .score = score,
+};
 
 int register_add_n_ref_op()
 {

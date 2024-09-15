@@ -69,17 +69,35 @@ static int run(struct node_ops* node_ops, struct exec_node* exec_node, struct ex
     void* output = output_tensor->data;
 
     _comparison_param op_param;
-    int ii = 0;
-    op_param.shape1[0] = input_tensor1->dims[ii++];
-    op_param.shape1[1] = input_tensor1->dims[ii++];
-    op_param.shape1[2] = input_tensor1->dims[ii++];
-    op_param.shape1[3] = input_tensor1->dims[ii++];
+    if (input_tensor1->dim_num == 4)
+    {
+        op_param.shape1[0] = input_tensor1->dims[0];
+        op_param.shape1[1] = input_tensor1->dims[1];
+        op_param.shape1[2] = input_tensor1->dims[2];
+        op_param.shape1[3] = input_tensor1->dims[3];
+    }
+    else if (input_tensor1->dim_num == 1)
+    {
+        op_param.shape1[0] = 1;
+        op_param.shape1[1] = input_tensor1->dims[0];
+        op_param.shape1[2] = 1;
+        op_param.shape1[3] = 1;
+    }
 
-    ii = 0;
-    op_param.shape0[0] = input_tensor->dims[ii++];
-    op_param.shape0[1] = input_tensor->dims[ii++];
-    op_param.shape0[2] = input_tensor->dims[ii++];
-    op_param.shape0[3] = input_tensor->dims[ii++];
+    if (input_tensor->dim_num == 4)
+    {
+        op_param.shape0[0] = input_tensor->dims[0];
+        op_param.shape0[1] = input_tensor->dims[1];
+        op_param.shape0[2] = input_tensor->dims[2];
+        op_param.shape0[3] = input_tensor->dims[3];
+    }
+    else if (input_tensor->dim_num == 1)
+    {
+        op_param.shape0[0] = 1;
+        op_param.shape0[1] = input_tensor->dims[0];
+        op_param.shape0[2] = 1;
+        op_param.shape0[3] = 1;
+    }
 
     op_param.layout = input_tensor->layout;
     op_param.type = param->type;
@@ -92,13 +110,15 @@ static int score(struct node_ops* node_ops, struct exec_graph* exec_graph, struc
     return OPS_SCORE_BEST;
 }
 
-static struct node_ops hcl_node_ops = {.prerun = NULL,
-                                       .run = run,
-                                       .reshape = NULL,
-                                       .postrun = NULL,
-                                       .init_node = init_node,
-                                       .release_node = release_node,
-                                       .score = score};
+static struct node_ops hcl_node_ops = {
+    .prerun = NULL,
+    .run = run,
+    .reshape = NULL,
+    .postrun = NULL,
+    .init_node = init_node,
+    .release_node = release_node,
+    .score = score,
+};
 
 int register_comparison_ref_op()
 {

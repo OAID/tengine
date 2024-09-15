@@ -7,11 +7,9 @@
 
 # Tengine
 
-[![GitHub license](http://OAID.github.io/pics/apache_2.0.svg)](./LICENSE)
-[![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/OAID/Tengine/build-and-test.yml?branch=tengine-lite)](https://github.com/OAID/Tengine/actions)
-[![Test Status](https://img.shields.io/travis/OAID/Tengine/tengine-lite?label=test)](https://travis-ci.org/OAID/Tengine)
-[![codecov](https://codecov.io/gh/OAID/Tengine/branch/tengine-lite/graph/badge.svg?token=kz9NcQPRrk)](https://codecov.io/gh/OAID/Tengine)
-[![Language grade: C/C++](https://img.shields.io/lgtm/grade/cpp/g/OAID/Tengine.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/OAID/Tengine/context:cpp)
+[![License](https://img.shields.io/badge/license-Apache_2.0-blue)](./LICENSE)
+[![Build Status](https://drone.conleylee.com/api/badges/conley/Tengine/status.svg?ref=refs/heads/master)](https://drone.conleylee.com/conley/Tengine)
+[![codecov](https://codecov.io/gh/ComingToy/Tengine/graph/badge.svg?token=KVOX0LW1NJ)](https://codecov.io/gh/ComingToy/Tengine)
 
 
 ## 简介

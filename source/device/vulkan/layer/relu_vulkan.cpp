@@ -39,24 +39,15 @@
 
 #include "relu_vulkan.hpp"
 #include "../layer_shader_type.h"
+#include "vulkan_layer.hpp"
 
 namespace TEngine {
 
-ReLU_vulkan::ReLU_vulkan()
+ReLU_vulkan::ReLU_vulkan(ir_graph_t* ir_graph, ir_node_t* ir_node, const GPUDevice* vkdev)
+    : Layer(vkdev)
 {
-    support_vulkan = true;
-    support_image_storage = true;
-
-    pipeline_relu = 0;
-    pipeline_relu_pack4 = 0;
-    pipeline_relu_pack8 = 0;
-}
-
-ReLU_vulkan::ReLU_vulkan(ir_graph_t* ir_graph, ir_node_t* ir_node)
-{
-    support_vulkan = true;
-    support_image_storage = false;
-
+    one_blob_only = true;
+    support_inplace = true;
     pipeline_relu = 0;
     pipeline_relu_pack4 = 0;
     pipeline_relu_pack8 = 0;

@@ -28,6 +28,7 @@
 #include "cpu_define.h"
 
 #include <stdint.h>
+#include <stdbool.h>
 
 struct node;
 struct node_ops;

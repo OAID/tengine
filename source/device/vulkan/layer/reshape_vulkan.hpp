@@ -50,8 +50,7 @@ namespace TEngine {
 class Reshape_vulkan : public Layer
 {
 public:
-    Reshape_vulkan();
-    Reshape_vulkan(ir_graph_t* ir_graph, ir_node_t* ir_node);
+    Reshape_vulkan(ir_graph_t* ir_graph, ir_node_t* ir_node, const GPUDevice* vkdev);
 
     virtual int create_pipeline(const Option& opt);
     virtual int destroy_pipeline(const Option& opt);

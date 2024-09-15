@@ -48,8 +48,7 @@ namespace TEngine {
 class Dropout_vulkan : public Layer
 {
 public:
-    Dropout_vulkan();
-    Dropout_vulkan(ir_graph_t* ir_graph, ir_node_t* ir_node);
+    Dropout_vulkan(ir_graph_t* ir_graph, ir_node_t* ir_node, const GPUDevice* vkdev);
 
     virtual int create_pipeline(const Option& opt);
     virtual int destroy_pipeline(const Option& opt);

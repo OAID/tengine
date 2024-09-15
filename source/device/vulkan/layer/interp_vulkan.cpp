@@ -39,30 +39,14 @@
 
 #include "interp_vulkan.hpp"
 #include "../layer_shader_type.h"
+#include "vulkan_layer.hpp"
 
 namespace TEngine {
 
-Interp_vulkan::Interp_vulkan()
+Interp_vulkan::Interp_vulkan(ir_graph_t* ir_graph, ir_node_t* ir_node, const GPUDevice* vkdev)
+    : Layer(vkdev)
 {
-    support_vulkan = true;
-    support_image_storage = false;
-
-    pipeline_interp = 0;
-    pipeline_interp_pack4 = 0;
-    pipeline_interp_pack8 = 0;
-
-    pipeline_interp_bicubic_coeffs_x = 0;
-    pipeline_interp_bicubic_coeffs_y = 0;
-    pipeline_interp_bicubic = 0;
-    pipeline_interp_bicubic_pack4 = 0;
-    pipeline_interp_bicubic_pack8 = 0;
-}
-
-Interp_vulkan::Interp_vulkan(ir_graph_t* ir_graph, ir_node_t* ir_node)
-{
-    support_vulkan = true;
-    support_image_storage = false;
-
+    one_blob_only = true;
     pipeline_interp = 0;
     pipeline_interp_pack4 = 0;
     pipeline_interp_pack8 = 0;
@@ -158,9 +142,7 @@ int Interp_vulkan::create_pipeline(const Option& _opt)
     if (out_shape.dims == 3) out_shape_packed = Tensor(out_shape.w, out_shape.h, out_shape.c / out_elempack, (void*)0, out_elemsize, out_elempack);
 
     // check blob shape
-    // if (!vkdev->shape_support_image_storage(shape_packed) || !vkdev->shape_support_image_storage(out_shape_packed))
     {
-        support_image_storage = false;
         opt.use_image_storage = false;
     }
 

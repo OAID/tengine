@@ -48,7 +48,7 @@ namespace TEngine {
 class Packing_vulkan : public Layer
 {
 public:
-    Packing_vulkan();
+    Packing_vulkan(const GPUDevice* vkdev);
 
     virtual int create_pipeline(const Option& opt);
     virtual int destroy_pipeline(const Option& opt);

@@ -39,35 +39,15 @@
 
 #include "softmax_vulkan.hpp"
 #include "../layer_shader_type.h"
+#include "vulkan_layer.hpp"
 
 namespace TEngine {
 
-Softmax_vulkan::Softmax_vulkan()
+Softmax_vulkan::Softmax_vulkan(ir_graph_t* ir_graph, ir_node_t* ir_node, const GPUDevice* vkdev)
+    : Layer(vkdev)
 {
-    support_vulkan = true;
-    support_image_storage = true;
-
-    pipeline_softmax_reduce_max = 0;
-    pipeline_softmax_exp_sub_max = 0;
-    pipeline_softmax_reduce_sum = 0;
-    pipeline_softmax_div_sum = 0;
-
-    pipeline_softmax_reduce_max_pack4 = 0;
-    pipeline_softmax_exp_sub_max_pack4 = 0;
-    pipeline_softmax_reduce_sum_pack4 = 0;
-    pipeline_softmax_div_sum_pack4 = 0;
-
-    pipeline_softmax_reduce_max_pack8 = 0;
-    pipeline_softmax_exp_sub_max_pack8 = 0;
-    pipeline_softmax_reduce_sum_pack8 = 0;
-    pipeline_softmax_div_sum_pack8 = 0;
-}
-
-Softmax_vulkan::Softmax_vulkan(ir_graph_t* ir_graph, ir_node_t* ir_node)
-{
-    support_vulkan = true;
-    support_image_storage = true;
-
+    one_blob_only = true;
+    support_inplace = true;
     pipeline_softmax_reduce_max = 0;
     pipeline_softmax_exp_sub_max = 0;
     pipeline_softmax_reduce_sum = 0;

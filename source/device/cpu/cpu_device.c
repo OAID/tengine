@@ -45,6 +45,7 @@
 #include "utility/utils.h"
 #include "utility/log.h"
 
+#include <stdio.h>
 #include <string.h>
 
 int init_cpu(struct device* device)
@@ -92,6 +93,17 @@ static int prerun(struct device* dev, struct subgraph* subgraph, void* option)
     subgraph->device_graph = exec_graph;
 
     return 0;
+}
+
+static void fname_normalize(char* fname)
+{
+    for (char* pos = fname; *pos != '\0'; ++pos)
+    {
+        if (*pos == '/')
+        {
+            *pos = '_';
+        }
+    }
 }
 
 static int run(struct device* dev, struct subgraph* subgraph)
@@ -214,6 +226,26 @@ static int run(struct device* dev, struct subgraph* subgraph)
             dump_float(fname, ir_tensor->data, ir_tensor->elem_num);
         }
 
+#endif
+#if 0
+        struct node* ir_node = node->ir_node;
+        struct graph* ir_graph = ir_node->graph;
+        char fname[512];
+
+        const char* root = getenv("TENGINE_DEBUG_DIR");
+        if (!root) root = "./";
+        char* pname = fname + sprintf(fname, "%s/", root);
+
+        for (int i = 0; i < ir_node->output_num; ++i)
+        {
+            struct tensor* ir_tensor = get_ir_graph_tensor(ir_graph, ir_node->output_tensors[i]);
+            float mean = tensor_mean(ir_tensor);
+
+            fprintf(stderr, "%s output %d, mean: %f\n", ir_node->name, i, mean);
+            sprintf(pname, "%s_out_%d", ir_node->name, i);
+            fname_normalize(pname);
+            save_tensor(fname, ir_tensor->data, ir_tensor->dims, ir_tensor->dim_num);
+        }
 #endif
     }
 

@@ -53,10 +53,6 @@ typedef struct __ref_broadmul_param
     int out_size;
     int on_size;
     int in_size;
-    float in0_scale;
-    float in1_scale;
-    int in0_zero;
-    int in1_zero;
 } ref_broadmul_param, *p_ref_broadmul_param;
 
 static int ref_broadmul_fp32(float* in0, float* in1, float* out, p_ref_broadmul_param param)
@@ -64,6 +60,7 @@ static int ref_broadmul_fp32(float* in0, float* in1, float* out, p_ref_broadmul_
     int out_size = param->out_size;
     int in_size = param->in_size;
     int on_size = param->on_size;
+    int last_i = 0;
 
     for (int o = 0; o < out_size; o++)
     {
@@ -74,6 +71,7 @@ static int ref_broadmul_fp32(float* in0, float* in1, float* out, p_ref_broadmul_
             {
                 int index = (o * on_size + j) * in_size + i;
                 out[index] = in0[index] * data1;
+                last_i = index;
             }
         }
     }
@@ -133,13 +131,15 @@ static int score(struct node_ops* node_ops, struct exec_graph* exec_graph, struc
     return OPS_SCORE_BEST;
 }
 
-static struct node_ops hcl_node_ops = {.prerun = NULL,
-                                       .run = run,
-                                       .reshape = NULL,
-                                       .postrun = NULL,
-                                       .init_node = init_node,
-                                       .release_node = release_node,
-                                       .score = score};
+static struct node_ops hcl_node_ops = {
+    .prerun = NULL,
+    .run = run,
+    .reshape = NULL,
+    .postrun = NULL,
+    .init_node = init_node,
+    .release_node = release_node,
+    .score = score,
+};
 
 int register_broadmul_ref_op()
 {

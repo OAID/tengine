@@ -290,13 +290,15 @@ static int score(struct node_ops* node_ops, struct exec_graph* exec_graph, struc
     return OPS_SCORE_BEST;
 }
 
-static struct node_ops hcl_node_ops = {.prerun = prerun,
-                                       .run = run,
-                                       .reshape = reshape,
-                                       .postrun = NULL,
-                                       .init_node = init_node,
-                                       .release_node = release_node,
-                                       .score = score};
+static struct node_ops hcl_node_ops = {
+    .prerun = prerun,
+    .run = run,
+    .reshape = reshape,
+    .postrun = NULL,
+    .init_node = init_node,
+    .release_node = release_node,
+    .score = score,
+};
 
 int register_fc_hcl_x86_op()
 {

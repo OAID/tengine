@@ -180,7 +180,8 @@ static struct node_ops hcl_node_ops = {
     .postrun = NULL,
     .init_node = init_node,
     .release_node = release_node,
-    .score = score};
+    .score = score,
+};
 
 int register_tile_ref_op()
 {

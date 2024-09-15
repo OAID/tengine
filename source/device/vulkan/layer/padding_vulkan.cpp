@@ -39,12 +39,14 @@
 
 #include "padding_vulkan.hpp"
 #include "../layer_shader_type.h"
+#include "vulkan_layer.hpp"
 
 namespace TEngine {
 
-Padding_vulkan::Padding_vulkan()
+Padding_vulkan::Padding_vulkan(const GPUDevice* vkdev)
+    : Layer(vkdev)
 {
-    support_vulkan = true;
+    one_blob_only = true;
     pipeline_padding = 0;
     pipeline_padding_pack4 = 0;
     pipeline_padding_pack8 = 0;

@@ -35,18 +35,6 @@ ENDIF()
 # Enable the languages which in use
 ENABLE_LANGUAGE (C CXX)
 
-IF (CMAKE_TOOLCHAIN_FILE)
-    SET (LIBRARY_OUTPUT_PATH_ROOT ${CMAKE_BINARY_DIR} CACHE PATH "root for library output, set this to change where android libs are compiled to")
-
-    # get absolute path, but get_filename_component ABSOLUTE only refer with source dir, so find_file here :(
-    GET_FILENAME_COMPONENT (CMAKE_TOOLCHAIN_FILE_NAME ${CMAKE_TOOLCHAIN_FILE} NAME)
-    FIND_FILE (CMAKE_TOOLCHAIN_FILE ${CMAKE_TOOLCHAIN_FILE_NAME} PATHS ${CMAKE_SOURCE_DIR} NO_DEFAULT_PATH)
-    MESSAGE (STATUS "Using CMake tool chain file ${CMAKE_TOOLCHAIN_FILE}")
-ENDIF()
-
-IF (NOT CMAKE_BUILD_TYPE)
-    SET (CMAKE_BUILD_TYPE release CACHE STRING "Choose the type of build" FORCE)
-ENDIF()
 
 # Module options
 OPTION (TENGINE_BUILD_BENCHMARK             "Build benchmark"                           ON)
@@ -92,7 +80,23 @@ OPTION (TENGINE_ENABLE_ALL_SYMBOL           "All symbol visible"                
 OPTION (TENGINE_ENABLE_MODEL_CACHE          "NPU kernel cache file option"              OFF)
 
 # Online report
-OPTION (TENGINE_ONLINE_REPORT               "online report"                             ON)
+OPTION (TENGINE_ONLINE_REPORT               "online report"                             OFF)
+
+OPTION (TENGINE_RV64_RVV_C906               "build for c906"                            OFF)
+OPTION (TENGINE_COVERAGE                    "build with coverage info"                  OFF)
+
+IF (CMAKE_TOOLCHAIN_FILE)
+    SET (LIBRARY_OUTPUT_PATH_ROOT ${CMAKE_BINARY_DIR} CACHE PATH "root for library output, set this to change where android libs are compiled to")
+
+    # get absolute path, but get_filename_component ABSOLUTE only refer with source dir, so find_file here :(
+    GET_FILENAME_COMPONENT (CMAKE_TOOLCHAIN_FILE_NAME ${CMAKE_TOOLCHAIN_FILE} NAME)
+    FIND_FILE (CMAKE_TOOLCHAIN_FILE ${CMAKE_TOOLCHAIN_FILE_NAME} PATHS ${CMAKE_SOURCE_DIR} NO_DEFAULT_PATH)
+    MESSAGE (STATUS "Using CMake tool chain file ${CMAKE_TOOLCHAIN_FILE}")
+ENDIF()
+
+IF (NOT CMAKE_BUILD_TYPE)
+    SET (CMAKE_BUILD_TYPE release CACHE STRING "Choose the type of build" FORCE)
+ENDIF()
 
 # Do check list
 INCLUDE ("${CMAKE_CURRENT_SOURCE_DIR}/cmake/check.cmake")

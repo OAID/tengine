@@ -50,8 +50,7 @@ namespace TEngine {
 class Eltwise_vulkan : public Layer
 {
 public:
-    Eltwise_vulkan();
-    Eltwise_vulkan(ir_graph_t* ir_graph, ir_node_t* ir_node);
+    Eltwise_vulkan(ir_graph_t* ir_graph, ir_node_t* ir_node, const GPUDevice* vkdev);
 
     virtual int create_pipeline(const Option& opt);
     virtual int destroy_pipeline(const Option& opt);
@@ -86,9 +85,6 @@ public:
     };
     int op_type; // Operation_PROD = 0, Operation_SUM = 1, Operation_MAX = 2
 
-    int input_c;
-    int input_h;
-    int input_w;
     int output_c;
     int output_h;
     int output_w;

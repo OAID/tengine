@@ -77,7 +77,7 @@ static int ref_argmin_fp32(float* input, int* output, const struct argmin_op_par
     return 0;
 }
 
-static int ref_argmin_uint8(uint8_t* input, int* output, const struct argmin_op_param* param)
+static int ref_argmin_uint8(uint8_t* input, uint8_t* output, const struct argmin_op_param* param)
 {
     uint8_t min_value;
     int min_value_index;
@@ -175,13 +175,10 @@ static int run(struct node_ops* node_ops, struct exec_node* exec_node, struct ex
 
     struct argmin_op_param* argmin_op_param = (struct argmin_op_param*)exec_node->ops_priv;
 
-    TLOG_ERR("output_tensor->elem_num:%d\n", output_tensor->elem_num);
-    TLOG_ERR("output_tensor->elem_size:%d\n", output_tensor->elem_size);
-
     if (input_tensor->data_type == TENGINE_DT_FP32)
         ref_argmin_fp32((float*)in_data, (int*)out_data, argmin_op_param);
     else if (input_tensor->data_type == TENGINE_DT_UINT8)
-        ref_argmin_uint8((uint8_t*)in_data, (int*)out_data, argmin_op_param);
+        ref_argmin_uint8((uint8_t*)in_data, (uint8_t*)out_data, argmin_op_param);
 
     return 0;
 }
@@ -196,13 +193,15 @@ static int score(struct node_ops* node_ops, struct exec_graph* exec_graph, struc
     return OPS_SCORE_BEST;
 }
 
-static struct node_ops argmin_node_ops = {.prerun = prerun,
-                                          .run = run,
-                                          .reshape = NULL,
-                                          .postrun = postrun,
-                                          .init_node = init_node,
-                                          .release_node = release_node,
-                                          .score = score};
+static struct node_ops argmin_node_ops = {
+    .prerun = prerun,
+    .run = run,
+    .reshape = NULL,
+    .postrun = postrun,
+    .init_node = init_node,
+    .release_node = release_node,
+    .score = score,
+};
 
 int register_argmin_ref_op()
 {

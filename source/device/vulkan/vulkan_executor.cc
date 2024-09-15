@@ -45,7 +45,6 @@ bool VULKANEngine::init()
 int VULKANEngine::VULKANEnginePreRun(struct subgraph* subgraph)
 {
     // TLOG_INFO("==== vulkan prerun start ====\n");
-    create_gpu_instance();
     // struct device *vk_dev = (struct device *)dev;
     struct graph *orig_graph = subgraph->graph;
     // struct vk_dev_priv *priv = (struct vk_dev_priv *)orig_graph->dev_priv;
@@ -93,6 +92,5 @@ int VULKANEngine::VULKANEngineRun(struct subgraph* subgraph)
 
 void VULKANEngine::VULKANEnginePostRun()
 {
-    destroy_gpu_instance();
     return;
 };

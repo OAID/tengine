@@ -1,27 +1,423 @@
 #ifndef __TEST_COMMON_H__
 #define __TEST_COMMON_H__
 
-#include <vector>
+#include <string.h>
 #include <math.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <stddef.h>
+#include <math.h>
 
 //#include "float.h"
-#include "compiler_fp16.h"
+#include "api/c_api.h"
 #include "tengine/c_api.h"
+#include "mathp.h"
+#include "vector.h"
 
 #include "graph/graph.h"
 #include "graph/subgraph.h"
 #include "graph/node.h"
 #include "graph/tensor.h"
+#include <assert.h>
 
 #define TENSOR_SHOW_LEADING_BLANK "    "
 #define TENSOR_FLOAT_EPSILON      0.0001f
+typedef union
+{
+    struct
+    {
+        uint16_t frac : 10;
+        uint16_t exp : 5;
+        uint16_t sign : 1;
+    } __attribute__((packed)) bits;
 
+    uint16_t u16;
+} __attribute__((packed)) __pack16_t;
+
+typedef union
+{
+    struct
+    {
+        uint32_t frac : 23;
+        uint32_t exp : 8;
+        uint32_t sign : 1;
+    } __attribute__((packed)) bits;
+    uint32_t u32;
+    float fp32;
+} __attribute__((packed)) __pack32_t;
+
+static uint16_t __fp32_to_fp16(float fp32)
+{
+    const float fp32_abs = fabs(fp32);
+    __pack32_t pack32 = {.fp32 = fp32};
+    __pack16_t pack16 = {.u16 = 0};
+
+    if (pack32.bits.exp == 0 && pack32.bits.frac == 0)
+    {
+        pack16.bits.sign = pack32.bits.sign;
+        pack16.bits.frac = 0;
+        pack16.bits.exp = 0;
+        return pack16.u16;
+    }
+
+    // nan
+    if (isnan(fp32))
+    {
+        pack16.bits.exp = 0x1f;
+        pack16.bits.frac = 1;
+        pack16.bits.sign = pack32.bits.sign;
+        return pack16.u16;
+    }
+
+    // inf
+    if (isinf(fp32))
+    {
+        pack16.bits.exp = 0x1f;
+        pack16.bits.frac = 0;
+        pack16.bits.sign = pack32.bits.sign;
+        return pack16.u16;
+    }
+
+    // upper to fp16 max norm
+    if (fp32_abs > 65504.0f)
+    {
+        pack16.bits.sign = pack32.bits.sign;
+        pack16.bits.exp = 0x1e;
+        pack16.bits.frac = 1023;
+        return pack16.u16;
+    }
+
+    // lower than min subnormalnorm
+    if (fp32_abs < 5.96046448e-8f)
+    {
+        return .0f;
+    }
+
+    // lower than fp16 min norm: fp32 normalized to fp16 subnormal
+    if (fp32_abs < 6.103515625e-5)
+    {
+        pack16.bits.sign = pack32.bits.sign;
+        pack16.bits.exp = pack32.bits.exp - 127 + 15;
+        pack16.bits.frac = pack32.bits.frac >> 13;
+        return pack16.u16;
+    }
+
+    // fp32 normalized to fp16 normalzied
+    if (pack32.bits.exp != 0 && pack32.bits.frac != 0)
+    {
+        pack16.bits.sign = pack32.bits.sign;
+        pack16.bits.exp = pack32.bits.exp - 127 + 15;
+        pack16.bits.frac = pack32.bits.frac >> 13;
+        return pack16.u16;
+    }
+
+    return pack16.u16;
+}
+
+static float __fp16_to_fp32(uint16_t const value)
+{
+    __pack16_t pack16 = {.u16 = value};
+    __pack32_t pack32 = {.u32 = 0};
+
+    if (pack16.bits.exp == 0 && pack16.bits.frac == 0)
+    {
+        return pack16.bits.sign == 0 ? .0f : -.0f;
+    }
+
+    // normalized case
+    if (pack16.bits.exp != 0xff && pack16.bits.exp != 0)
+    {
+        pack32.bits.sign = pack16.bits.sign;
+        pack32.bits.exp = pack16.bits.exp - 15 + 127;
+        pack32.bits.frac = pack16.bits.frac << 13;
+        return pack32.fp32;
+    }
+
+    // subnormal case
+    // 5.96046448e-8f = 2**-14 * 1/1024.0
+    if (pack16.bits.exp == 0 && pack16.bits.frac != 0)
+    {
+        const float alpha = pack16.bits.sign == 0 ? 5.96046448e-8f : -5.96046448e-8f;
+        return pack16.bits.frac * alpha;
+    }
+
+    if (pack16.bits.exp == 0x1f && pack16.bits.frac == 0)
+    {
+        pack32.bits.sign = pack16.bits.sign;
+        pack32.bits.exp = 0xff;
+        pack32.bits.frac = 0;
+        return pack32.fp32;
+    }
+
+    if (pack16.bits.exp == 0x1f && pack16.bits.frac != 0)
+    {
+        pack32.bits.sign = pack16.bits.sign;
+        pack32.bits.exp = 0xff;
+        pack32.bits.frac = 1;
+        return pack32.fp32;
+    }
+
+    return pack32.fp32;
+}
+struct data_buffer
+{
+    void* data;
+    size_t size;
+    int dims[8];
+    int dim_num;
+    int dtype;
+    float scale;
+    int32_t zero_point;
+};
+
+float random_float(float a, float b)
+{
+    float random = ((float)rand()) / (float)RAND_MAX;
+    float diff = b - a;
+    float r = random * diff;
+    float v = a + r;
+    // generate denormal as zero
+    if (v < 0.0001 && v > -0.0001)
+        v = 0.f;
+    return v;
+}
+
+int rand_int(const int a, const int b)
+{
+    const int delta = b - a;
+    return a + rand() % delta;
+}
+
+struct data_buffer* create_data_buffer_from_tensor(tensor_t tensor)
+{
+    struct data_buffer* buf = (struct data_buffer*)malloc(sizeof(struct data_buffer));
+    buf->size = get_tensor_buffer_size(tensor);
+    buf->data = malloc(buf->size);
+    memcpy(buf->data, get_tensor_buffer(tensor), buf->size);
+    buf->dim_num = get_tensor_shape(tensor, buf->dims, 8);
+    buf->dtype = get_tensor_data_type(tensor);
+    get_tensor_quant_param(tensor, &buf->scale, &buf->zero_point, 1);
+    return buf;
+}
+
+int dtype_to_size(const int dtype)
+{
+    switch (dtype)
+    {
+    case TENGINE_DT_FP32:
+        return sizeof(float);
+    case TENGINE_DT_INT8:
+        return sizeof(int8_t);
+    case TENGINE_DT_UINT8:
+        return sizeof(uint8_t);
+    case TENGINE_DT_FP16:
+        return sizeof(uint16_t);
+    case TENGINE_DT_INT16:
+        return sizeof(int16_t);
+    case TENGINE_DT_INT32:
+        return sizeof(int32_t);
+    default:
+        assert(0 && "Unsupported dtype");
+        return -1;
+    }
+}
+
+static int fill_random_data(void* p, size_t total_size, int dtype)
+{
+#define __fill(__dtype)                               \
+    do {                                              \
+        __dtype* data = p;                            \
+        const int n = total_size / sizeof(__dtype);   \
+        for (int i = 0; i < n; ++i)                   \
+        {                                             \
+            if (dtype == TENGINE_DT_UINT8)            \
+            {                                         \
+                data[i] = (__dtype)rand_int(0, 30);   \
+            }                                         \
+            else                                      \
+            {                                         \
+                data[i] = (__dtype)rand_int(-15, 15); \
+            }                                         \
+        }                                             \
+    } while (0);
+
+    if (dtype == TENGINE_DT_FP32)
+    {
+        float* data = p;
+        for (int i = 0; i < total_size / sizeof(float); ++i)
+        {
+            data[i] = random_float(-1.2, 1.2);
+        }
+        return 0;
+    }
+    else if (dtype == TENGINE_DT_FP16)
+    {
+        uint16_t* data = p;
+        for (int i = 0; i < total_size / sizeof(uint16_t); ++i)
+        {
+            data[i] = __fp32_to_fp16(random_float(-1.2, 1.2));
+        }
+        return 0;
+    }
+    else if (dtype == TENGINE_DT_INT8)
+    {
+        __fill(int8_t);
+        return 0;
+    }
+    else if (dtype == TENGINE_DT_UINT8)
+    {
+        __fill(uint8_t);
+        return 0;
+    }
+    else if (dtype == TENGINE_DT_INT32)
+    {
+        __fill(int32_t);
+        return 0;
+    }
+
+    assert(0 && "Unsupported dtype");
+    return -1;
+}
+
+struct data_buffer* create_data_buffer(const int* dims, const int dim_num, const int dtype)
+{
+    const int elem_size = dtype_to_size(dtype);
+    if (elem_size < 0) return NULL;
+
+    struct data_buffer* buf = (struct data_buffer*)malloc(sizeof(struct data_buffer));
+    if (!buf) return NULL;
+    buf->size = (int)(dim_num > 0);
+    buf->dim_num = dim_num;
+
+    for (int i = 0; i < dim_num; ++i)
+    {
+        buf->size *= dims[i];
+        buf->dims[i] = dims[i];
+    }
+
+    buf->size *= elem_size;
+    buf->dtype = dtype;
+    buf->data = malloc(buf->size);
+    if (!buf->data)
+    {
+        free(buf);
+        return NULL;
+    }
+
+    buf->scale = random_float(0.1, 2.0) + 0.01;
+    buf->zero_point = rand_int(-5, 5);
+
+    int ret = fill_random_data(buf->data, buf->size, buf->dtype);
+    if (ret != 0)
+    {
+        free(buf->data);
+        free(buf);
+        return NULL;
+    }
+    return buf;
+}
+
+struct data_buffer* create_data_buffer_fp32(const int* dims, const int dim_num)
+{
+    return create_data_buffer(dims, dim_num, TENGINE_DT_FP32);
+}
+
+void free_data_buffer_in_vector(void* p)
+{
+    struct data_buffer* buf = *(struct data_buffer**)p;
+    free(buf->data);
+    free(buf);
+}
+
+bool is_match_buffer(const struct data_buffer* lhs, const struct data_buffer* rhs, const float eps)
+{
+    if (lhs->dim_num != rhs->dim_num || lhs->size != rhs->size || lhs->dtype != rhs->dtype) return false;
+#define __compare(__dtype)                                                                                                                                                                                                                                   \
+    do {                                                                                                                                                                                                                                                     \
+        const __dtype* p1 = lhs->data;                                                                                                                                                                                                                       \
+        const __dtype* p2 = rhs->data;                                                                                                                                                                                                                       \
+        if (lhs->scale != rhs->scale || lhs->zero_point != rhs->zero_point) return false;                                                                                                                                                                    \
+        for (int i = 0; i < lhs->size / dtype_to_size(lhs->dtype); ++i)                                                                                                                                                                                      \
+        {                                                                                                                                                                                                                                                    \
+            const int a = (int)p1[i];                                                                                                                                                                                                                        \
+            const int b = (int)p2[i];                                                                                                                                                                                                                        \
+            if (abs(a - b) != 0)                                                                                                                                                                                                                             \
+            {                                                                                                                                                                                                                                                \
+                fprintf(stderr, "buffer mismatch at %d, lhs = %d, rhs = %d, dims1 = {%d, %d, %d, %d}, dims2 = {%d, %d, %d, %d}\n", i, a, b, lhs->dims[0], lhs->dims[1], lhs->dims[2], lhs->dims[3], rhs->dims[0], rhs->dims[1], rhs->dims[2], rhs->dims[3]); \
+                return false;                                                                                                                                                                                                                                \
+            }                                                                                                                                                                                                                                                \
+        }                                                                                                                                                                                                                                                    \
+        return true;                                                                                                                                                                                                                                         \
+    } while (0)
+
+    for (int i = 0; i < lhs->dim_num; ++i)
+    {
+        if (lhs->dims[i] != rhs->dims[i]) return false;
+    }
+
+    if (lhs->dtype == TENGINE_DT_FP32)
+    {
+        const float* p1 = lhs->data;
+        const float* p2 = rhs->data;
+
+        for (int i = 0; i < lhs->size / sizeof(float); ++i)
+        {
+            if (fabs(p1[i] - p2[i]) > eps)
+            {
+                fprintf(stderr, "buffer mismatch at %d, lhs = %f, rhs = %f, dims1 = {%d, %d, %d, %d}, dims2 = {%d, %d, %d, %d}\n", i, p1[i], p2[i], lhs->dims[0], lhs->dims[1], lhs->dims[2], lhs->dims[3], rhs->dims[0], rhs->dims[1], rhs->dims[2], rhs->dims[3]);
+                return false;
+            }
+        }
+
+        return true;
+    }
+    else if (lhs->dtype == TENGINE_DT_UINT8)
+    {
+        __compare(uint8_t);
+    }
+    else if (lhs->dtype == TENGINE_DT_INT8)
+    {
+        __compare(int8_t);
+    }
+    else if (lhs->dtype == TENGINE_DT_INT32)
+    {
+        __compare(int32_t);
+    }
+    else if (lhs->dtype == TENGINE_DT_INT16)
+    {
+        __compare(int16_t);
+    }
+    else if (lhs->dtype == TENGINE_DT_FP16)
+    {
+        const uint16_t* p1 = lhs->data;
+        const uint16_t* p2 = lhs->data;
+
+        for (int i = 0; i < lhs->size / sizeof(uint16_t); ++i)
+        {
+            const uint16_t a = p1[i];
+            const uint16_t b = p2[i];
+            const float fpa = __fp16_to_fp32(a);
+            const float fpb = __fp16_to_fp32(b);
+
+            if (fabs(fpa - fpb) > eps)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+#undef __compare
+
+    return false;
+}
+
+typedef int (*node_setup_hook_fn)(graph_t graph, const char* test_node_name, const char* op, const char* input_name, int data_type, int input_num, int output_num);
 typedef int (*common_test)(graph_t, const char* input_name, const char* node_name, int data_type, int layout, int n, int c, int h, int w);
 
+#if 0
 void dump_tensor_line(void* data_ptr, int offset, int data_type, int w)
 {
     if (0 >= w)
@@ -48,7 +444,7 @@ void dump_tensor_line(void* data_ptr, int offset, int data_type, int w)
     }
     case TENGINE_DT_FP16:
     {
-        __fp16* p = (__fp16*)data_ptr;
+        uint16_t* p = (uint16_t*)data_ptr;
 
 #ifdef __ARM_ARCH
         for (int i = 0; i < w - 1; i++)
@@ -213,6 +609,7 @@ void dump_node_output(node_t test_node, int index)
 
     release_graph_tensor(tensor);
 }
+#endif
 
 int create_node(graph_t graph, const char* node_name, int n, int c, int h, int w, int data_type, int layout)
 {
@@ -252,7 +649,7 @@ int create_node(graph_t graph, const char* node_name, int n, int c, int h, int w
     return 0;
 }
 
-int create_input_node(graph_t graph, const char* node_name, int data_type, int layout, int n, int c, int h, int w, int dims_count = 4)
+int create_input_node_with_multi_inputs(graph_t graph, const char* node_name, int data_type, int input_num, int layout, int n, int c, int h, int w, int dims_count)
 {
     if (0 == n) dims_count = 3;
     if (0 == c) dims_count = 2;
@@ -263,104 +660,108 @@ int create_input_node(graph_t graph, const char* node_name, int data_type, int l
         return -1;
     }
 
-    node_t node = create_graph_node(graph, node_name, "InputOp");
+    node_t node = create_graph_node(graph, node_name, OP_INPUT_NAME);
     if (NULL == node)
     {
         fprintf(stderr, "Create %d dims node(%s) failed. ", dims_count, node_name);
         return -1;
     }
 
-    tensor_t tensor = create_graph_tensor(graph, node_name, data_type);
-    if (NULL == tensor)
+    for (int i = 0; i < input_num; ++i)
     {
-        release_graph_node(node);
+        char tensor_name[512];
+        snprintf(tensor_name, sizeof(tensor_name), "%s_%d", node_name, i);
+        tensor_t tensor = create_graph_tensor(graph, tensor_name, data_type);
 
-        fprintf(stderr, "Create %d dims tensor for node(%s) failed. ", dims_count, node_name);
-
-        return -1;
-    }
-
-    int ret = set_node_output_tensor(node, 0, tensor, TENSOR_TYPE_INPUT);
-    if (0 != ret)
-    {
-        release_graph_tensor(tensor);
-        release_graph_node(node);
-
-        fprintf(stderr, "Set %d dims output tensor for node(%s) failed. ", dims_count, node_name);
-
-        return -1;
-    }
-
-    switch (dims_count)
-    {
-    case 1:
-    {
-        int dims_array[1] = {w};
-        set_tensor_shape(tensor, dims_array, dims_count);
-        break;
-    }
-    case 2:
-    {
-        int dims_array[2] = {h, w};
-        set_tensor_shape(tensor, dims_array, dims_count);
-        break;
-    }
-    case 3:
-    {
-        if (TENGINE_LAYOUT_NCHW == layout)
+        if (NULL == tensor)
         {
-            int dims_array[3] = {c, h, w};
+            release_graph_node(node);
+            fprintf(stderr, "Create %d dims tensor for node(%s) failed. ", dims_count, node_name);
+            return -1;
+        }
+
+        int ret = set_node_output_tensor(node, i, tensor, TENSOR_TYPE_INPUT);
+        if (0 != ret)
+        {
+            release_graph_tensor(tensor);
+            release_graph_node(node);
+            fprintf(stderr, "Set %d dims output tensor for node(%s) failed. ", dims_count, node_name);
+            return -1;
+        }
+
+        switch (dims_count)
+        {
+        case 1:
+        {
+            int dims_array[1] = {w};
             set_tensor_shape(tensor, dims_array, dims_count);
             break;
         }
-
-        if (TENGINE_LAYOUT_NHWC == layout)
+        case 2:
         {
-            int dims_array[3] = {h, w, c};
+            int dims_array[2] = {h, w};
             set_tensor_shape(tensor, dims_array, dims_count);
             break;
+        }
+        case 3:
+        {
+            if (TENGINE_LAYOUT_NCHW == layout)
+            {
+                int dims_array[3] = {c, h, w};
+                set_tensor_shape(tensor, dims_array, dims_count);
+                break;
+            }
+
+            if (TENGINE_LAYOUT_NHWC == layout)
+            {
+                int dims_array[3] = {h, w, c};
+                set_tensor_shape(tensor, dims_array, dims_count);
+                break;
+            }
+        }
+        case 4:
+        {
+            if (TENGINE_LAYOUT_NCHW == layout)
+            {
+                int dims_array[4] = {n, c, h, w};
+                set_tensor_shape(tensor, dims_array, dims_count);
+                break;
+            }
+
+            if (TENGINE_LAYOUT_NHWC == layout)
+            {
+                int dims_array[4] = {n, h, w, c};
+                set_tensor_shape(tensor, dims_array, dims_count);
+                break;
+            }
+        }
+        case 5:
+        {
+            if (TENGINE_LAYOUT_NCHW == layout)
+            {
+                int dims_array[5] = {1, n, c, h, w};
+                set_tensor_shape(tensor, dims_array, dims_count);
+                break;
+            }
+
+            if (TENGINE_LAYOUT_NHWC == layout)
+            {
+                int dims_array[5] = {1, n, h, w, c};
+                set_tensor_shape(tensor, dims_array, dims_count);
+                break;
+            }
+        }
+        default:
+            fprintf(stderr, "Cannot support %d dims tensor.\n", dims_count);
         }
     }
-    case 4:
-    {
-        if (TENGINE_LAYOUT_NCHW == layout)
-        {
-            int dims_array[4] = {n, c, h, w};
-            set_tensor_shape(tensor, dims_array, dims_count);
-            break;
-        }
-
-        if (TENGINE_LAYOUT_NHWC == layout)
-        {
-            int dims_array[4] = {n, h, w, c};
-            set_tensor_shape(tensor, dims_array, dims_count);
-            break;
-        }
-    }
-    case 5:
-    {
-        if (TENGINE_LAYOUT_NCHW == layout)
-        {
-            int dims_array[5] = {1, n, c, h, w};
-            set_tensor_shape(tensor, dims_array, dims_count);
-            break;
-        }
-
-        if (TENGINE_LAYOUT_NHWC == layout)
-        {
-            int dims_array[5] = {1, n, h, w, c};
-            set_tensor_shape(tensor, dims_array, dims_count);
-            break;
-        }
-    }
-    default:
-        fprintf(stderr, "Cannot support %d dims tensor.\n", dims_count);
-    }
-
-    release_graph_tensor(tensor);
-    release_graph_node(node);
 
     return 0;
+}
+
+int create_input_node(graph_t graph, const char* node_name, int data_type, int layout, int n, int c, int h, int w, int dims_count)
+{
+    return create_input_node_with_multi_inputs(graph, node_name, data_type, 1, layout, n, c, h, w, dims_count);
 }
 
 int fill_fp32_tensor(tensor_t tensor, float value)
@@ -455,6 +856,16 @@ int fill_uint8_tensor(tensor_t tensor, float value)
     }
 
     return 0;
+}
+
+void feed_input_tensor(graph_t graph, int input_node_idx, int input_tensor_idx, const float* values, int* dims, const int dim_num)
+{
+    tensor_t tensor = get_graph_input_tensor(graph, input_node_idx, input_tensor_idx);
+    if (!tensor)
+    {
+        fprintf(stderr, "Cannot find %dth tensor with node idex %d\n", input_tensor_idx, input_node_idx);
+        return;
+    }
 }
 
 void fill_input_float_tensor_by_index(graph_t graph, int input_node_index, int tensor_index, float value)
@@ -585,9 +996,7 @@ int test_graph_init()
 {
     // now init tengine will mask critical filed and return an error
     // TODO: fix this fatal issue
-    init_tengine();
-
-    return 0;
+    return init_tengine();
 }
 
 int test_graph_run(graph_t graph)
@@ -598,7 +1007,7 @@ int test_graph_run(graph_t graph)
         return -1;
     }
 
-    dump_graph(graph);
+    // dump_graph(graph);
 
     if (0 != run_graph(graph, 1))
     {
@@ -613,10 +1022,41 @@ void test_graph_release(graph_t graph)
 {
     postrun_graph(graph);
     destroy_graph(graph);
-    release_tengine();
 }
 
-graph_t create_common_test_graph(const char* test_node_name, int data_type, int layout, int n, int c, int h, int w, common_test test_func, int dims_num = 4)
+static int craete_common_test_node(graph_t graph, const char* test_node_name, const char* op, const char* input_name, int data_type, int input_num, int output_num)
+{
+    node_t test_node = create_graph_node(graph, test_node_name, op);
+    if (NULL == test_node)
+    {
+        fprintf(stderr, "create test node failed.\n");
+        return -1;
+    }
+
+    node_t input_node = get_graph_node(graph, input_name);
+    for (int i = 0; i < get_node_output_number(input_node); ++i)
+    {
+        tensor_t input_tensor = get_node_output_tensor(input_node, i);
+        set_node_input_tensor(test_node, i, input_tensor);
+    }
+
+    char tensor_name[512];
+    for (int i = 0; i < output_num; ++i)
+    {
+        snprintf(tensor_name, sizeof(tensor_name), "%s_%d", test_node_name, i);
+        tensor_t output_tensor = create_graph_tensor(graph, tensor_name, data_type);
+        if (!output_tensor)
+        {
+            fprintf(stderr, "create graph output tensor failed.\n");
+            return -1;
+        }
+
+        set_node_output_tensor(test_node, i, output_tensor, TENSOR_TYPE_VAR);
+    }
+    return 0;
+}
+
+graph_t create_common_test_graph(const char* op, const char* test_node_name, const void* params, const size_t param_size, vector_t* inputs, int output_num, int data_type, int layout)
 {
     graph_t graph = create_graph(NULL, NULL, NULL);
     if (NULL == graph)
@@ -632,29 +1072,80 @@ graph_t create_common_test_graph(const char* test_node_name, int data_type, int 
     }
 
     const char* input_name = "input_node";
-    if (create_input_node(graph, input_name, data_type, layout, n, c, h, w, dims_num) < 0)
+    node_t input_node = create_graph_node(graph, input_name, OP_INPUT_NAME);
+    node_t test_node = create_graph_node(graph, test_node_name, op);
+    if (!input_node || !test_node)
     {
         fprintf(stderr, "create input node failed.\n");
         return NULL;
     }
 
-    if (test_func(graph, input_name, test_node_name, data_type, layout, n, c, h, w) < 0)
+    // setup input tensor
+    char tensor_name[512];
+    float scale = 1.0;
+    int zero_point = 0.0;
+
+    for (int i = 0; i < get_vector_num(inputs); ++i)
     {
-        fprintf(stderr, "create test node failed.\n");
-        return NULL;
+        struct data_buffer* input = *(struct data_buffer**)get_vector_data(inputs, i);
+        snprintf(tensor_name, sizeof(tensor_name), "%s_%d", input_name, i);
+        tensor_t tensor = create_graph_tensor(graph, tensor_name, input->dtype);
+        if (!tensor) return NULL;
+
+        set_tensor_shape(tensor, input->dims, input->dim_num);
+        set_tensor_buffer(tensor, input->data, input->size);
+        scale = input->scale;
+        zero_point = input->zero_point;
+        set_tensor_quant_param(tensor, &scale, &zero_point, 1);
+
+        if (set_node_output_tensor(input_node, i, tensor, TENSOR_TYPE_VAR))
+        {
+            return NULL;
+        }
+
+        if (set_node_input_tensor(test_node, i, tensor))
+        {
+            return NULL;
+        }
     }
 
-    /* set input/output node */
-    const char* inputs[] = {input_name};
-    const char* outputs[] = {test_node_name};
+    // setup output tensor
+    for (int i = 0; i < output_num; ++i)
+    {
+        snprintf(tensor_name, sizeof(tensor_name), "%s_%d", test_node_name, i);
+        tensor_t output_tensor = create_graph_tensor(graph, tensor_name, data_type);
 
-    if (set_graph_input_node(graph, inputs, sizeof(inputs) / sizeof(char*)) < 0)
+        if (data_type != TENGINE_DT_FP16 && data_type != TENGINE_DT_FP32)
+        {
+            set_tensor_quant_param(output_tensor, &scale, &zero_point, 1);
+        }
+
+        if (set_node_output_tensor(test_node, i, output_tensor, TENSOR_TYPE_VAR))
+        {
+            return NULL;
+        }
+    }
+
+    // setup test node param
+    if (params)
+    {
+        struct node* ir_node = (struct node*)test_node;
+        memcpy(ir_node->op.param_mem, params, param_size);
+    }
+
+    // setup test node end.
+
+    /* set input/output node */
+    const char* input_nodes[] = {input_name};
+    const char* output_nodes[] = {test_node_name};
+
+    if (set_graph_input_node(graph, input_nodes, sizeof(input_nodes) / sizeof(char*)) < 0)
     {
         fprintf(stderr, "set inputs failed.\n");
         return NULL;
     }
 
-    if (set_graph_output_node(graph, outputs, sizeof(outputs) / sizeof(char*)) < 0)
+    if (set_graph_output_node(graph, output_nodes, sizeof(output_nodes) / sizeof(char*)) < 0)
     {
         fprintf(stderr, "set outputs failed.\n");
         return NULL;
@@ -663,7 +1154,123 @@ graph_t create_common_test_graph(const char* test_node_name, int data_type, int 
     return graph;
 }
 
-graph_t create_opendla_test_graph(const char* test_node_name, int data_type, int layout, int n, int c, int h, int w, common_test test_func, int dims_num = 4)
+vector_t* create_and_forward_test_graph(const char* op, const void* params, const size_t param_size, vector_t* inputs, int output_num, int data_type, int layout)
+{
+    int ret = 0;
+    vector_t* outputs_ref = create_vector(sizeof(struct data_buffer*), free_data_buffer_in_vector);
+    graph_t graph_ref = create_common_test_graph(op, "test_node", params, param_size, inputs, output_num, data_type, layout);
+
+    if (!outputs_ref)
+    {
+        ret = -1;
+        goto out;
+    }
+
+    if (!graph_ref)
+    {
+        goto failed;
+    }
+
+    struct options opt;
+    opt.num_thread = 1;
+    opt.cluster = TENGINE_CLUSTER_ALL;
+    opt.precision = TENGINE_MODE_FP32;
+    opt.affinity = 255;
+
+    if ((ret = prerun_graph_multithread(graph_ref, opt)) != 0)
+    {
+        fprintf(stderr, "prerun graph failed: %d\n", ret);
+        goto failed;
+    }
+
+    if ((ret = run_graph(graph_ref, 1)) < 0)
+    {
+        fprintf(stderr, "run graph failed: %d\n", ret);
+        goto out;
+    }
+
+    for (int i = 0; i < get_graph_output_node_number(graph_ref); ++i)
+    {
+        node_t output_node = get_graph_output_node(graph_ref, i);
+        for (int t = 0; t < get_node_output_number(output_node); ++t)
+        {
+            tensor_t output_tensor = get_graph_output_tensor(graph_ref, i, t);
+            struct data_buffer* data = create_data_buffer_from_tensor(output_tensor);
+            push_vector_data(outputs_ref, &data);
+        }
+    }
+
+    if ((ret = postrun_graph(graph_ref)))
+    {
+        goto failed;
+    }
+
+    goto out;
+
+failed:
+    release_vector(outputs_ref);
+    outputs_ref = NULL;
+
+out:
+    if (graph_ref)
+    {
+        destroy_graph(graph_ref);
+    }
+    return outputs_ref;
+}
+
+//inputs: vector<struct data_buffer>
+int create_common_op_test_case(const char* op, const void* params, const size_t param_size, vector_t* inputs, int output_num, int data_type, int layout, const float eps)
+{
+    int ret = init_tengine();
+    if (ret)
+    {
+        fprintf(stderr, "init tengine failed: %d\n", ret);
+        return ret;
+    }
+
+    setenv("TG_DEBUG_REF", "1", 1);
+    vector_t* outputs_ref = create_and_forward_test_graph(op, params, param_size, inputs, 1, data_type, layout);
+    if (!outputs_ref)
+    {
+        return -1;
+    }
+
+    setenv("TG_DEBUG_REF", "0", 1);
+    vector_t* outputs = create_and_forward_test_graph(op, params, param_size, inputs, 1, data_type, layout);
+    if (!outputs)
+    {
+        ret = -1;
+        goto out;
+    }
+
+    if (get_vector_num(outputs) != get_vector_num(outputs_ref))
+    {
+        fprintf(stderr, "output num is not equal to ref. test = %d, ref = %d\n", get_vector_num(outputs), get_vector_num(outputs_ref));
+        goto out;
+    }
+
+    for (int i = 0; i < get_vector_num(outputs_ref); ++i)
+    {
+        struct data_buffer* p1 = *(struct data_buffer**)get_vector_data(outputs_ref, i);
+        struct data_buffer* p2 = *(struct data_buffer**)get_vector_data(outputs, i);
+
+        if (!is_match_buffer(p1, p2, eps))
+        {
+            fprintf(stderr, "%dth output is mismatch\n", i);
+            ret = -1;
+            goto out;
+        }
+    }
+
+out:
+    if (outputs_ref) release_vector(outputs_ref);
+    if (outputs) release_vector(outputs);
+    release_tengine();
+    return ret;
+}
+
+graph_t create_opendla_test_graph(const char* test_node_name, int data_type, int layout, int n, int c, int h, int w, common_test test_func, int dims_num)
 {
     /* create OpenDLA backend */
     context_t odla_context = create_context("odla", 1);
@@ -719,7 +1326,7 @@ graph_t create_opendla_test_graph(const char* test_node_name, int data_type, int
     return graph;
 }
 
-graph_t create_timvx_test_graph(const char* test_node_name, int data_type, int layout, int n, int c, int h, int w, common_test test_func, int dims_num = 4)
+graph_t create_timvx_test_graph(const char* test_node_name, int data_type, int layout, int n, int c, int h, int w, common_test test_func, int dims_num)
 {
     /* create VeriSilicon TIM-VX backend */
     context_t timvx_context = create_context("timvx", 1);
@@ -775,7 +1382,7 @@ graph_t create_timvx_test_graph(const char* test_node_name, int data_type, int l
     return graph;
 }
 
-graph_t create_tensorrt_test_graph(const char* test_node_name, int data_type, int layout, int n, int c, int h, int w, common_test test_func, int dims_num = 4)
+graph_t create_tensorrt_test_graph(const char* test_node_name, int data_type, int layout, int n, int c, int h, int w, common_test test_func, int dims_num)
 {
     /* create TensorRT backend */
     context_t trt_context = create_context("tensorrt", 1);
@@ -831,7 +1438,7 @@ graph_t create_tensorrt_test_graph(const char* test_node_name, int data_type, in
     return graph;
 }
 
-graph_t create_torch_test_graph(const char* test_node_name, int data_type, int layout, int n, int c, int h, int w, common_test test_func, int dims_num = 4)
+graph_t create_torch_test_graph(const char* test_node_name, int data_type, int layout, int n, int c, int h, int w, common_test test_func, int dims_num)
 {
     /* create libTorch backend */
     context_t torch_context = create_context("torch", 1);
@@ -885,152 +1492,6 @@ graph_t create_torch_test_graph(const char* test_node_name, int data_type, int l
     }
 
     return graph;
-}
-
-graph_t create_cpu_test_graph(const char* test_node_name, int data_type, int layout, int n, int c, int h, int w, common_test test_func, int dims_num = 4)
-{
-    graph_t graph = create_graph(NULL, NULL, NULL);
-    if (NULL == graph)
-    {
-        fprintf(stderr, "get graph failed.\n");
-        return NULL;
-    }
-
-    if (set_graph_layout(graph, layout) < 0)
-    {
-        fprintf(stderr, "set layout failed.\n");
-        return NULL;
-    }
-
-    const char* input_name = "input_node";
-    if (create_input_node(graph, input_name, data_type, layout, n, c, h, w, dims_num) < 0)
-    {
-        fprintf(stderr, "create input node failed.\n");
-        return NULL;
-    }
-
-    if (test_func(graph, input_name, test_node_name, data_type, layout, n, c, h, w) < 0)
-    {
-        fprintf(stderr, "create test node failed.\n");
-        return NULL;
-    }
-
-    /* set input/output node */
-    const char* inputs[] = {input_name};
-    const char* outputs[] = {test_node_name};
-
-    if (set_graph_input_node(graph, inputs, sizeof(inputs) / sizeof(char*)) < 0)
-    {
-        fprintf(stderr, "set inputs failed.\n");
-        return NULL;
-    }
-
-    if (set_graph_output_node(graph, outputs, sizeof(outputs) / sizeof(char*)) < 0)
-    {
-        fprintf(stderr, "set outputs failed.\n");
-        return NULL;
-    }
-
-    return graph;
-}
-
-int compare_tensor(tensor_t a, tensor_t b)
-{
-    int a_dim[MAX_SHAPE_DIM_NUM], b_dim[MAX_SHAPE_DIM_NUM];
-    int a_dim_count = get_tensor_shape(a, a_dim, MAX_SHAPE_DIM_NUM);
-    int b_dim_count = get_tensor_shape(b, b_dim, MAX_SHAPE_DIM_NUM);
-
-    if (a_dim_count <= 0 || a_dim_count != b_dim_count)
-        return -1;
-
-    for (int i = 0; i < a_dim_count; i++)
-        if (a_dim[i] != b_dim[i])
-            return -1;
-
-    int a_type = get_tensor_data_type(a);
-    int b_type = get_tensor_data_type(b);
-
-    if (a_type != b_type)
-        return -1;
-
-    int element_size = 1;
-    for (int i = 0; i < a_dim_count; i++)
-        element_size *= a_dim[i];
-
-    if (element_size <= 0)
-    {
-        fprintf(stderr, "One of dims is 0. Zero is not allowed.\n");
-        return -1;
-    }
-
-    switch (a_type)
-    {
-    case TENGINE_DT_FP32:
-    {
-        float* a_data_ptr = (float*)get_tensor_buffer(a);
-        float* b_data_ptr = (float*)get_tensor_buffer(b);
-
-        for (int i = 0; i < element_size; i++)
-            if (fabsf(a_data_ptr[i] - b_data_ptr[i]) < TENSOR_FLOAT_EPSILON)
-                return -1;
-
-        break;
-    }
-    case TENGINE_DT_FP16:
-    {
-        __fp16* a_data_ptr = (__fp16*)get_tensor_buffer(a);
-        __fp16* b_data_ptr = (__fp16*)get_tensor_buffer(b);
-
-        for (int i = 0; i < element_size; i++)
-        {
-            if (fabsf((float)fp16_to_fp32(a_data_ptr[i]) - (float)fp16_to_fp32(b_data_ptr[i])) < TENSOR_FLOAT_EPSILON)
-                return -1;
-        }
-
-        break;
-    }
-    case TENGINE_DT_INT32:
-    {
-        int32_t* a_data_ptr = (int32_t*)get_tensor_buffer(a);
-        int32_t* b_data_ptr = (int32_t*)get_tensor_buffer(b);
-
-        for (int i = 0; i < element_size; i++)
-            if (a_data_ptr[i] != b_data_ptr[i])
-                return -1;
-
-        break;
-    }
-    case TENGINE_DT_INT16:
-    {
-        int16_t* a_data_ptr = (int16_t*)get_tensor_buffer(a);
-        int16_t* b_data_ptr = (int16_t*)get_tensor_buffer(b);
-
-        for (int i = 0; i < element_size; i++)
-            if (a_data_ptr[i] != b_data_ptr[i])
-                return -1;
-
-        break;
-    }
-    case TENGINE_DT_UINT8:
-    case TENGINE_DT_INT8:
-    {
-        int8_t* a_data_ptr = (int8_t*)get_tensor_buffer(a);
-        int8_t* b_data_ptr = (int8_t*)get_tensor_buffer(b);
-
-        for (int i = 0; i < element_size; i++)
-            if (a_data_ptr[i] != b_data_ptr[i])
-                return -1;
-
-        break;
-    }
-    default:
-    {
-        fprintf(stderr, "The type of tensor was not supported.\n");
-        return -1;
-    }
-    }
-
-    return 0;
 }
 
 static inline unsigned long get_current_time(void)
