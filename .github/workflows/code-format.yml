@@ -16,6 +16,6 @@ jobs:
     - name: code-format
       run: |
         python scripts/clang-format-all.py
-    - uses: stefanzweifel/git-auto-commit-action@v4
+    - uses: stefanzweifel/git-auto-commit-action@v5
       with:
         commit_message: apply code-format changes
