@@ -19,7 +19,7 @@ jobs:
   android-armv7-cpu:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: configure
       run: mkdir build && cd build && cmake -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK_LATEST_HOME/build/cmake/android.toolchain.cmake -DANDROID_ABI="armeabi-v7a" -DANDROID_PLATFORM=android-19 ..
     - name: build
@@ -29,7 +29,7 @@ jobs:
   android-armv8-cpu:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: configure
       run: mkdir build && cd build && cmake -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK_LATEST_HOME/build/cmake/android.toolchain.cmake -DANDROID_ABI="arm64-v8a" -DANDROID_PLATFORM=android-21 ..
     - name: build
@@ -39,7 +39,7 @@ jobs:
   linux-armv7-cpu-gcc:
     runs-on: ubuntu-20.04
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: cache-qemu
       id: cache-qemu
       uses: actions/cache@v3
@@ -48,7 +48,7 @@ jobs:
         key: qemu-arm-install-1
     - name: checkout-qemu
       if: steps.cache-qemu.outputs.cache-hit != 'true'
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         repository: qemu/qemu
         path: qemu
@@ -74,7 +74,7 @@ jobs:
   linux-armv8-cpu-gcc:
     runs-on: ubuntu-20.04
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: cache-qemu
       id: cache-qemu
       uses: actions/cache@v3
@@ -83,7 +83,7 @@ jobs:
         key: qemu-aarch64-install-1
     - name: checkout-qemu
       if: steps.cache-qemu.outputs.cache-hit != 'true'
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         repository: qemu/qemu
         path: qemu
@@ -112,7 +112,7 @@ jobs:
       uses: styfle/cancel-workflow-action@0.11.0
       with:
         access_token: ${{ secrets.GITHUB_TOKEN }}
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: cache-qemu
       id: cache-qemu
       uses: actions/cache@v3
@@ -121,7 +121,7 @@ jobs:
         key: qemu-mips64el-install-1
     - name: checkout-qemu
       if: steps.cache-qemu.outputs.cache-hit != 'true'
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         repository: qemu/qemu
         path: qemu
@@ -147,7 +147,7 @@ jobs:
   windows-x64-cpu-vs2017:
     runs-on: windows-2016
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: build
       run: |
         mkdir build; cd build
@@ -158,7 +158,7 @@ jobs:
   windows-x64-cpu-vs2019:
     runs-on: windows-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: build
       run: |
         mkdir build; cd build
@@ -169,7 +169,7 @@ jobs:
   windows-x86-cpu-vs2017:
     runs-on: windows-2016
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: build
       run: |
         mkdir build; cd build
@@ -180,7 +180,7 @@ jobs:
   windows-x86-cpu-vs2019:
     runs-on: windows-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: build
       run: |
         mkdir build; cd build
@@ -191,7 +191,7 @@ jobs:
   linux-x64-timvx-gcc:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: update
       run: sudo apt-get update
     - name: libopencv
@@ -217,7 +217,7 @@ jobs:
   linux-aarch64-timvx-gcc:
     runs-on: vim3
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: tim-vx
       run: |
         git clone https://github.com/VeriSilicon/TIM-VX.git
@@ -234,7 +234,7 @@ jobs:
   linux-x64-cpu-gcc:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: update
       run: sudo apt-get update
     - name: depends
@@ -248,7 +248,7 @@ jobs:
   linux-x64-cpu-clang:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: update
       run: sudo apt-get update
     - name: depends
@@ -265,7 +265,7 @@ jobs:
   linux-x64-cpu-tools-convert:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: update
       run: |
         sudo apt-get update
@@ -278,7 +278,7 @@ jobs:
   linux-x64-cpu-tools-quant:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: update
       run: |
         sudo apt-get update

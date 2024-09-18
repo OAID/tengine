@@ -40,7 +40,7 @@ static int layernorm_op_map(int op)
 }
 
 static int tm2_load_layernorm(struct graph* ir_graph, struct node* ir_node, const TM2_Node* tm_node,
-                                 const TM2_Operator* tm_op)
+                              const TM2_Operator* tm_op)
 {
     struct layernorm_Param* gather_param = (struct layernorm_Param*)ir_node->op.param_mem;
     const struct tm2_priv* tm2_priv = (struct tm2_priv*)ir_graph->serializer_privacy;
